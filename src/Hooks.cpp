@@ -2,8 +2,17 @@
 using namespace Xbyak;
 namespace BetterTelekinesis
 {
+#ifdef SKYRIM_AE
+	bool AE = true;
+
+#else
+	bool AE = false;
+#endif
+
 	void BetterTelekinesisPlugin::Update()
 	{
+		frame++;
+
 		float diff = RE::Main::QFrameAnimTime();
 		Time += diff;
 
@@ -68,7 +77,7 @@ namespace BetterTelekinesis
 		}
 
 		{
-			std::scoped_lock lock(CachedHandlesLocker);
+			std::scoped_lock lock(updateLocker);
 			int counter = ++HeldUpdateCounter;
 
 			auto ef = GetCurrentRelevantActiveEffects();
@@ -138,7 +147,10 @@ namespace BetterTelekinesis
 					auto objHolder = RE::TESObjectREFR::LookupByHandle(snd->ObjectHandleId);
 					if (objHolder) {
 						auto ptr = objHolder.get();
-						update_held_object(ptr, snd, ef);
+						if (frame % 2 == 0) {
+							update_held_object(ptr, snd, ef);
+							frame = 0;
+						}
 					} else {
 						if (rem.empty()) {
 							rem = std::vector<unsigned int>();
@@ -315,10 +327,9 @@ namespace BetterTelekinesis
 
 		for (auto& spellInfo : spellInfos) {
 			auto b = spellInfo->SpellBook;
-			/*
+
 			if (b != nullptr)
 				leveled_list_helper::AddToLeveledList(b);
-				*/
 		}
 
 		auto cac = Util::CachedFormList::TryParse(Config::EffectInfo_Forms, "EffectInfo_Forms", true, false);
@@ -370,18 +381,18 @@ namespace BetterTelekinesis
 		}
 	}
 
-	uintptr_t BetterTelekinesisPlugin::addr_TeleDamBase = RELOCATION_ID(506190, 0).address() + 8;
-	uintptr_t BetterTelekinesisPlugin::addr_TeleDamMult = RELOCATION_ID(506186, 0).address() + 8;
-	uintptr_t BetterTelekinesisPlugin::addr_CanBeTelekinesis = RELOCATION_ID(33822, 0).address();
-	uintptr_t BetterTelekinesisPlugin::addr_PickDistance = RELOCATION_ID(502526, 0).address() + 8;
+	uintptr_t BetterTelekinesisPlugin::addr_TeleDamBase = RELOCATION_ID(506190, 376040).address() + 8;
+	uintptr_t BetterTelekinesisPlugin::addr_TeleDamMult = RELOCATION_ID(506186, 376034).address() + 8;
+	uintptr_t BetterTelekinesisPlugin::addr_CanBeTelekinesis = RELOCATION_ID(33822, 34614).address();
+	uintptr_t BetterTelekinesisPlugin::addr_PickDistance = RELOCATION_ID(502526, 370108).address() + 8;
 
-	float MaxHelper()
+	static float MaxHelper()
 	{
 		auto fpick = Memory::Internal::read<float>(BetterTelekinesisPlugin::addr_PickDistance);
 		return std::max(fpick, BetterTelekinesisPlugin::_reach_spell);
 	}
 
-	RE::NiAVObject* GetNearestActorHelper(RE::TESObjectREFR* obj)
+	static RE::NiAVObject* GetNearestActorHelper(RE::TESObjectREFR* obj)
 	{
 		if (obj != nullptr) {
 			auto root = obj->Get3D();
@@ -420,7 +431,8 @@ namespace BetterTelekinesis
 		debug_msg = Config::DebugLogMode;
 		// Allow launch object even if not pulled completely.
 		uintptr_t addr = 0;
-		if (addr = RELOCATION_ID(34250, 0).address() + OFFSET(0x332 - 0x250, 0x0); REL::make_pattern<"80 B8 A8 00 00 00 00">().match(addr)) {
+
+		if (addr = RELOCATION_ID(34250, 35052).address() + OFFSET(0x332 - 0x250, 0x95); REL::make_pattern<"80 B8 A8 00 00 00 00">().match(addr)) {
 			//Memory::WriteHook(new HookParameters() Address = addr, IncludeLength = 7, ReplaceLength = 7, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -449,7 +461,11 @@ namespace BetterTelekinesis
 					cmp(rax, 0);
 					jge(NotElse);  // } else if (launch < 0) {
 					mov(rax, r13);
-					jmp(ptr[rip + retnLabel + (0x4CB - 0x339)]);
+					if (!AE) {
+						jmp(ptr[rip + retnLabel + (0x4CB - 0x339)]);
+					} else {
+						jmp(ptr[rip + retnLabel + 0x15B]);
+					}
 					L(NotElse);
 					mov(rax, r13);
 					cmp(byte[rax + 0xA8], 0);
@@ -473,7 +489,7 @@ namespace BetterTelekinesis
 		}
 
 		// Allow reach spell.
-		if (addr = RELOCATION_ID(25591, 0).address() + OFFSET(0xB2E1 - 0xA6A0, 0); REL::make_pattern<"F3 0F 10 05">().match(addr)) {
+		if (addr = RELOCATION_ID(25591, 26127).address() + OFFSET(0xB2E1 - 0xA6A0, 0xDBB); REL::make_pattern<"F3 0F 10 05">().match(addr)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 0, ReplaceLength = 8, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -506,7 +522,7 @@ namespace BetterTelekinesis
 
 		if (Config::DontDeactivateHavokHoldSpring) {
 			// Don't allow spring to deactivate.
-			addr = RELOCATION_ID(61571, 0).address() + OFFSET(0x9AE - 0x980, 0);
+			addr = RELOCATION_ID(61571, 62469).address() + OFFSET(0x9AE - 0x980, 0x2E);
 			Utility::Memory::SafeWrite(addr, Utility::Assembly::NoOperation2);
 		}
 
@@ -576,36 +592,7 @@ namespace BetterTelekinesis
 			}
 
 			if (Config::GrabActorNodeNearest || !grabActorNodes.empty()) {
-				auto GetNearestActor = [](RE::TESObjectREFR* obj) -> RE::NiAVObject* {
-					if (obj != nullptr) {
-						auto root = obj->Get3D();
-						if (root != nullptr) {
-							if (Config::GrabActorNodeNearest) {
-								auto sel = find_nearest_node_helper::FindBestNodeInCrosshair(root->AsNode());
-								if (sel != nullptr) {
-									logger::debug(fmt::runtime("Picked up by " + std::string(sel->name.c_str())));
-
-									return sel;
-								}
-
-								return root;
-							}
-
-							for (auto& x : grabActorNodes) {
-								auto node = root->GetObjectByName(x);
-								if (node != nullptr) {
-									return node;
-								}
-							}
-
-							return root;
-						}
-					}
-
-					return nullptr;
-				};
-
-				if (addr = RELOCATION_ID(33826, 0).address(); REL::make_pattern<"40 57 48 83 EC 30">().match(addr)) {
+				if (addr = RELOCATION_ID(33826, 34618).address(); REL::make_pattern<"40 57 48 83 EC 30">().match(addr)) {
 					//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 0, ReplaceLength = 6, Before = [&](std::any ctx) {
 					struct Patch : Xbyak::CodeGenerator
 					{
@@ -640,11 +627,11 @@ namespace BetterTelekinesis
 		}
 
 		if (Config::FixSuperHugeTelekinesisDistanceBug) {
-			if (addr = RELOCATION_ID(39474, 0).address() + OFFSET(0x414 - 0x3E0, 0); REL::make_pattern<"F3 0F 10 05">().match(addr)) {
+			if (addr = RELOCATION_ID(39474, 40551).address() + OFFSET(0x414 - 0x3E0, 0x31); REL::make_pattern<"F3 0F 10 05">().match(addr)) {
 				REL::safe_fill(addr, 0x90, 16);
 			}
 
-			if (addr = RELOCATION_ID(39464, 0).address() + OFFSET(0x116 - 0x050, 0); REL::make_pattern<"F3 0F 10 05">().match(addr)) {
+			if (addr = RELOCATION_ID(39464, 40541).address() + OFFSET(0x116 - 0x050, 0xD0); REL::make_pattern<"F3 0F 10 05">().match(addr)) {
 				REL::safe_fill(addr, 0x90, 24);
 			}
 		}
@@ -664,9 +651,11 @@ namespace BetterTelekinesis
 			return;
 		}
 
-		std::unique_lock lock(CachedHandlesLocker);
-		for (auto& val : CachedHeldHandles | std::views::values) {
-			func(val);
+		{
+			std::scoped_lock lock(CachedHandlesLocker);
+			for (auto& val : CachedHeldHandles | std::views::values) {
+				func(val);
+			}
 		}
 	}
 
@@ -676,21 +665,11 @@ namespace BetterTelekinesis
 		float damMult = 1.0f;
 
 		float dam = Memory::Internal::read<float>(addr_TeleDamBase);
-		/*
-		Memory::Internal::write<float>(reinterpret_cast<uintptr_t>(alloc), Memory::Internal::read<float>(addr_TeleDamBase));
-		REL::Relocation<void (*)(int, RE::PlayerCharacter*, RE::Actor*, uintptr_t)> ApplyPerk{ addr_ApplyPerk };
-		auto plr = RE::PlayerCharacter::GetSingleton();
-
-		ApplyPerk(static_cast<int>(RE::BGSEntryPoint::ENTRY_POINTS::kModTelekinesisDamage), ptrPlr, actorPtr, reinterpret_cast<uintptr_t>(alloc));
-		*/
+		
 		RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINTS::kModTelekinesisDamage, ptrPlr, actorPtr, dam);
 		damBase = dam;
 		dam = Memory::Internal::read<float>(addr_TeleDamMult);
-		/*
-		Memory::Internal::write<float>(reinterpret_cast<uintptr_t>(alloc), Memory::Internal::read<float>(addr_TeleDamMult));
-
-		ApplyPerk(static_cast<int>(RE::BGSEntryPoint::ENTRY_POINTS::kModTelekinesisDamageMult), ptrPlr, nullptr, reinterpret_cast<uintptr_t>(alloc));
-		*/
+	
 		RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINTS::kModTelekinesisDamageMult, ptrPlr, actorPtr, dam);
 		damMult = dam;
 
@@ -700,7 +679,7 @@ namespace BetterTelekinesis
 
 	void BetterTelekinesisPlugin::OnLaunchActor(RE::Actor* actorPtr)
 	{
-		if (Config::ThrowActorDamage <= 0.0 || actorPtr == nullptr || Memory::Internal::read<uint8_t>(actorPtr + 0x1A) != 62) {
+		if (Config::ThrowActorDamage <= 0.0 || actorPtr == nullptr || actorPtr->formType.underlying() != 62) {
 			return;
 		}
 
@@ -714,16 +693,6 @@ namespace BetterTelekinesis
 			actorPtr->ModActorValue(RE::ActorValue::kHealth, -damTotal);
 		}
 	}
-
-	std::optional<uint32_t> BetterTelekinesisPlugin::drop_timer;
-
-	Util::CachedFormList* BetterTelekinesisPlugin::Spells;
-	Util::CachedFormList* BetterTelekinesisPlugin::PrimarySpells;
-	Util::CachedFormList* BetterTelekinesisPlugin::SecondarySpells;
-	std::vector<std::string> BetterTelekinesisPlugin::grabActorNodes;
-	std::unordered_set<std::string, Util::case_insensitive_unordered_set::hash> BetterTelekinesisPlugin::ExcludeActorNodes;
-	ULONGLONG BetterTelekinesisPlugin::_last_check_learn = 0;
-	ULONGLONG BetterTelekinesisPlugin::_last_check_learn2 = 0;
 
 	bool BetterTelekinesisPlugin::find_collision_node(RE::NiNode* root, const int depth)
 	{
@@ -750,33 +719,36 @@ namespace BetterTelekinesis
 		return false;
 	}
 
-	void BetterTelekinesisPlugin::write_float(const unsigned long long vid, const float value)
+#pragma warning(push)
+#pragma warning(disable: 4100)
+	void BetterTelekinesisPlugin::write_float(uintptr_t SE_id, uintptr_t AE_id, const float value)
 	{
 		if (value < 0.0f)
 			return;
-		Memory::Internal::write<float>(RELOCATION_ID(vid, 0).address() + OFFSET(8, 8), value);
+		Memory::Internal::write<float>(RELOCATION_ID(SE_id, AE_id).address() + OFFSET(8, 8), value);
 	}
 
-	void BetterTelekinesisPlugin::write_float_mult(unsigned long long vid, const float value)
+	void BetterTelekinesisPlugin::write_float_mult(uintptr_t SE_id, uintptr_t AE_id, const float value)
 	{
 		if (value == 1.0f)
 			return;
-		auto prev = Memory::Internal::read<float>(RELOCATION_ID(vid, 0).address() + OFFSET(8, 8), value);
-		Memory::Internal::write<float>(RELOCATION_ID(vid, 0).address() + OFFSET(8, 8), value * prev);
+		auto prev = Memory::Internal::read<float>(RELOCATION_ID(SE_id, AE_id).address() + OFFSET(8, 8));
+		Memory::Internal::write<float>(RELOCATION_ID(SE_id, AE_id).address() + OFFSET(8, 8), value * prev);
 	}
+#pragma warning(pop)
 
 	void BetterTelekinesisPlugin::apply_good_stuff()
 	{
-		write_float_mult(506184, static_cast<float>(Config::BaseDistanceMultiplier));
-		write_float_mult(506190, static_cast<float>(Config::BaseDamageMultiplier));
-		write_float(506149, static_cast<float>(Config::ObjectPullSpeedBase));
-		write_float(506151, static_cast<float>(Config::ObjectPullSpeedAccel));
-		write_float(506153, static_cast<float>(Config::ObjectPullSpeedMax));
-		write_float_mult(506157, static_cast<float>(Config::ObjectThrowForce));
-		write_float(506196, static_cast<float>(Config::ActorPullSpeed));
-		write_float_mult(506199, static_cast<float>(Config::ActorThrowForce));
-		write_float_mult(506155, static_cast<float>(Config::ObjectHoldDistance));
-		write_float_mult(506194, static_cast<float>(Config::ActorHoldDistance));
+		write_float_mult(506184, 376031, static_cast<float>(Config::BaseDistanceMultiplier));
+		write_float_mult(506190, 376040, static_cast<float>(Config::BaseDamageMultiplier));
+		write_float(506149, 375978, static_cast<float>(Config::ObjectPullSpeedBase));
+		write_float(506151, 375981, static_cast<float>(Config::ObjectPullSpeedAccel));
+		write_float(506153, 375984, static_cast<float>(Config::ObjectPullSpeedMax));
+		write_float_mult(506157, 375990, static_cast<float>(Config::ObjectThrowForce));
+		write_float(506196, 376049, static_cast<float>(Config::ActorPullSpeed));
+		write_float_mult(506199, 376054, static_cast<float>(Config::ActorThrowForce));
+		write_float_mult(506155, 375987, static_cast<float>(Config::ObjectHoldDistance));
+		write_float_mult(506194, 376046, static_cast<float>(Config::ActorHoldDistance));
 
 		find_nearest_node_helper::init();
 
@@ -798,12 +770,10 @@ namespace BetterTelekinesis
 					if (spell == nullptr) {
 						continue;
 					}
+
 					auto fl = spell->GetData()->flags;
-					//auto fl = Memory::Internal::read<uint32_t>(spell + 0xC4);
 					spell->GetData()->flags = fl | 1;
-					//Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(spell) + 0xC4, fl | 1);
 					spell->GetData()->costOverride = cost;
-					//Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(spell) + 0xC0, cost);
 				}
 			}
 		}
@@ -831,20 +801,20 @@ namespace BetterTelekinesis
 
 			if (!ls.empty() && ls.size() == 8) {
 				// elasticity
-				write_float(506169, ls[0]);
-				write_float(506161, ls[1]);
+				write_float(506169, 376008, ls[0]);
+				write_float(506161, 375996, ls[1]);
 
 				// spring damping
-				write_float(506167, ls[2]);
-				write_float(506159, ls[3]);
+				write_float(506167, 376005, ls[2]);
+				write_float(506159, 375993, ls[3]);
 
 				// object damping
-				write_float(506171, ls[4]);
-				write_float(506163, ls[5]);
+				write_float(506171, 376011, ls[4]);
+				write_float(506163, 375999, ls[5]);
 
 				// max force
-				write_float(506173, ls[6]);
-				write_float(506165, ls[7]);
+				write_float(506173, 376014, ls[6]);
+				write_float(506165, 376002, ls[7]);
 			}
 		}
 	}
@@ -892,6 +862,8 @@ namespace BetterTelekinesis
 						had = true;
 						break;
 					}
+				default:
+					break;
 				}
 
 				if (had) {
@@ -977,11 +949,11 @@ namespace BetterTelekinesis
 		return false;
 	}
 
-	unsigned int GetHandleId()
+	static unsigned int GetHandleId()
 	{
 		unsigned int handleId = 0;
 		{
-			std::scoped_lock lock(BetterTelekinesisPlugin::locker_picked);
+			std::scoped_lock lock(locker_picked);
 			if (!BetterTelekinesisPlugin::grabactor_picked.empty()) {
 				std::unordered_set<unsigned int> alreadyChosen;
 				bool hasBad = false;
@@ -1018,50 +990,55 @@ namespace BetterTelekinesis
 
 	void BetterTelekinesisPlugin::apply_overwrite_target_pick()
 	{
-		if (auto addr = RELOCATION_ID(33677, 0).address() + OFFSET(0x10A5 - 0x1010, 0); REL::make_pattern<"8B 48 04 89 8D 90 03 00 00">().match(addr)) {
-			struct Patch : Xbyak::CodeGenerator
+		auto addr = RELOCATION_ID(33677, 34457).address() + OFFSET(0x10A5 - 0x1010, 0x9A);
+		struct Patch : Xbyak::CodeGenerator
+		{
+			Patch(std::uintptr_t a_func, uintptr_t a_target)
 			{
-				Patch(std::uintptr_t a_func, uintptr_t a_target)
-				{
-					Xbyak::Label retnLabel;
-					Xbyak::Label funcLabel;
+				Xbyak::Label retnLabel;
+				Xbyak::Label funcLabel;
 
-					Xbyak::Label NotIf;
+				Xbyak::Label NotIf;
 
-					cmp(r13b, 2);  //if (ctx::R13::ToUInt8() == 2) {
-					jne(NotIf);
+				cmp(r13b, 2);  //if (ctx::R13::ToUInt8() == 2) {
+				jne(NotIf);
 
-					sub(rsp, 0x20);
-					call(ptr[rip + funcLabel]);
-					add(rsp, 0x20);
+				sub(rsp, 0x20);
+				call(ptr[rip + funcLabel]);
+				add(rsp, 0x20);
 
-					mov(ecx, eax);
+				mov(ecx, eax);
+				if (!AE) {
 					mov(ptr[rbp + 0x390], eax);
-
-					jmp(ptr[rip + retnLabel]);
-
-					L(NotIf);
-					mov(ecx, ptr[rax + 4]);
-					mov(ptr[rbp + 0x390], ecx);
-					jmp(ptr[rip + retnLabel]);
-
-					L(funcLabel);
-					dq(a_func);
-
-					L(retnLabel);
-					dq(a_target + 0x9);
+				} else {
+					mov(ptr[rbp + 0x360], eax);
 				}
-			};
-			Patch patch(reinterpret_cast<uintptr_t>(GetHandleId), addr);
-			patch.ready();
 
-			auto& trampoline = SKSE::GetTrampoline();
-			trampoline.write_branch<5>(addr, trampoline.allocate(patch));
-		} else {
-			stl::report_and_fail("Failed to Overwrite Target pick");
-		}
+				jmp(ptr[rip + retnLabel]);
 
-		auto addr = RELOCATION_ID(33669, 0).address() + 0x500D9 - 0x4FFF0;
+				L(NotIf);
+				mov(ecx, ptr[rax + 4]);
+				if (!AE) {
+					mov(ptr[rbp + 0x390], ecx);
+				} else {
+					mov(ptr[rbp + 0x360], ecx);
+				}
+				jmp(ptr[rip + retnLabel]);
+
+				L(funcLabel);
+				dq(a_func);
+
+				L(retnLabel);
+				dq(a_target + 0x9);
+			}
+		};
+		Patch patch(reinterpret_cast<uintptr_t>(GetHandleId), addr);
+		patch.ready();
+
+		auto& trampoline = SKSE::GetTrampoline();
+		trampoline.write_branch<5>(addr, trampoline.allocate(patch));
+
+		addr = RELOCATION_ID(33669, 34449).address() + OFFSET(0x500D9 - 0x4FFF0, 0xEB);
 		Memory::Internal::write<uint8_t>(addr + 1, 2, true);
 
 		auto col = std::vector{ RE::COL_LAYER::kGround, RE::COL_LAYER::kTerrain, RE::COL_LAYER::kClutter, RE::COL_LAYER::kStatic, RE::COL_LAYER::kWeapon, RE::COL_LAYER::kBiped, RE::COL_LAYER::kActorZone, RE::COL_LAYER::kBipedNoCC };
@@ -1071,12 +1048,6 @@ namespace BetterTelekinesis
 			RaycastHelper::RaycastMask |= fl;
 		}
 	}
-
-	RE::NiPoint3 BetterTelekinesisPlugin::TempPt1;
-	RE::NiPoint3 BetterTelekinesisPlugin::TempPt2;
-	RE::NiPoint3 BetterTelekinesisPlugin::TempPt3;
-	RE::NiPoint3 BetterTelekinesisPlugin::TempPtBegin;
-	RE::NiPoint3 BetterTelekinesisPlugin::TempPtEnd;
 
 	BetterTelekinesisPlugin::spell_info* BetterTelekinesisPlugin::spell_info::Load(const std::string& str, const std::string& setting)
 	{
@@ -1090,7 +1061,7 @@ namespace BetterTelekinesis
 		}
 
 		for (int i = 0; i < spl.size(); i++) {
-			if ((spl[i]).empty()) {
+			if (spl[i].empty()) {
 				continue;
 			}
 
@@ -1128,9 +1099,9 @@ namespace BetterTelekinesis
 				std::string fname = "BetterTelekinesis.esp";
 				int mi = 0;
 
-				ProduceItem(0x805, fname, mspl[(mi++) % mspl.size()]);
+				ProduceItem(0x805, fname, mspl[mi++ % mspl.size()]);
 				for (unsigned int u = 0x88C; u <= 0x8BC; u++) {
-					ProduceItem(u, fname, mspl[(mi++) % mspl.size()]);
+					ProduceItem(u, fname, mspl[mi++ % mspl.size()]);
 				}
 			}
 			break;
@@ -1145,14 +1116,16 @@ namespace BetterTelekinesis
 				std::string fname = "BetterTelekinesis.esp";
 				int mi = 0;
 
-				ProduceItem(0x804, fname, mspl[(mi++) % mspl.size()]);
+				ProduceItem(0x804, fname, mspl[mi++ % mspl.size()]);
 				for (unsigned int u = 0x87B; u <= 0x88B; u++) {
-					ProduceItem(u, fname, mspl[(mi++) % mspl.size()]);
+					ProduceItem(u, fname, mspl[mi++ % mspl.size()]);
 				}
 				for (unsigned int u = 0x8BD; u <= 0x8DC; u++) {
-					ProduceItem(u, fname, mspl[(mi++) % mspl.size()]);
+					ProduceItem(u, fname, mspl[mi++ % mspl.size()]);
 				}
 			}
+			break;
+		default:
 			break;
 		}
 
@@ -1175,8 +1148,6 @@ namespace BetterTelekinesis
 	}
 
 	std::vector<RE::TESEffectShader*> BetterTelekinesisPlugin::EffectInfos;
-	std::mutex BetterTelekinesisPlugin::locker_picked;
-	std::mutex BetterTelekinesisPlugin::CachedHandlesLocker;
 
 	void BetterTelekinesisPlugin::begin_profile()
 	{
@@ -1273,9 +1244,9 @@ namespace BetterTelekinesis
 			for (int i = 0; i < 2; i++) {
 				auto caster = plr->GetMagicCaster(static_cast<RE::MagicSystem::CastingSource>(i));
 				if (caster != nullptr) {
-					switch (caster->state.underlying()) {
-					case (uint32_t)RE::MagicCaster::State::kCharging:
-					case (uint32_t)RE::MagicCaster::State::kCasting:  //Concentrating?
+					switch (caster->state.get()) {
+					case RE::MagicCaster::State::kCharging:
+					case RE::MagicCaster::State::kCasting:  //Concentrating?
 						{
 							auto ef = caster->currentSpell;
 							if (ef != nullptr) {
@@ -1290,6 +1261,8 @@ namespace BetterTelekinesis
 								}
 							}
 						}
+						break;
+					default:
 						break;
 					}
 				}
@@ -1714,7 +1687,7 @@ namespace BetterTelekinesis
 
 	void BetterTelekinesisPlugin::find_best_telekinesis(RE::TESObjectCELL* cell, const std::shared_ptr<telek_calc_data>& data)
 	{
-		float quickMaxDist = (data->maxDistance + 500.0f);
+		float quickMaxDist = data->maxDistance + 500.0f;
 		quickMaxDist *= quickMaxDist;
 
 		cell->spinLock.Lock();
@@ -1764,7 +1737,7 @@ namespace BetterTelekinesis
 		return hasObj;
 	}
 
-	void ClearGrabbedObjectsHelper()
+	static void ClearGrabbedObjectsHelper()
 	{
 		auto cg = BetterTelekinesisPlugin::current_grabindex;
 		if (cg != 0) {
@@ -1774,48 +1747,48 @@ namespace BetterTelekinesis
 		}
 	}
 
-	void ClearGrabbedObjectsHelper2(uintptr_t effect)
+	static void ClearGrabbedObjectsHelper2(uintptr_t effect)
 	{
 		BetterTelekinesisPlugin::free_grabindex(effect);
 	}
 
-	void TelekinesisApplyHelper(uintptr_t effect)
+	static void TelekinesisApplyHelper(uintptr_t effect)
 	{
 		BetterTelekinesisPlugin::switch_to_grabindex(effect);
 		BetterTelekinesisPlugin::_dont_call_clear++;
 	}
 
-	void TelekinesisApplyHelper2()
+	static void TelekinesisApplyHelper2()
 	{
 		BetterTelekinesisPlugin::switch_to_grabindex(0);
 		BetterTelekinesisPlugin::_dont_call_clear--;
 	}
 
-	void TelekinesisApplyHelper3(uintptr_t effect)
+	static void TelekinesisApplyHelper3(uintptr_t effect)
 	{
 		BetterTelekinesisPlugin::switch_to_grabindex(effect);
 	}
 
-	void TelekinesisApplyHelper4(uintptr_t rsp)
+	static void TelekinesisApplyHelper4(uintptr_t rsp)
 	{
 		BetterTelekinesisPlugin::free_grabindex(Memory::Internal::read<uintptr_t>(rsp + 0x30));
 		BetterTelekinesisPlugin::switch_to_grabindex(0);
 	}
 
-	void TelekinesisApplyHelper5(uintptr_t effect)
+	static void TelekinesisApplyHelper5(uintptr_t effect)
 	{
 		float diff = RE::Main::QFrameAnimTime();
 		BetterTelekinesisPlugin::switch_to_grabindex(effect, diff);
 		BetterTelekinesisPlugin::_dont_call_clear++;
 	}
 
-	void TelekinesisApplyHelper6()
+	static void TelekinesisApplyHelper6()
 	{
 		BetterTelekinesisPlugin::switch_to_grabindex(0);
 		BetterTelekinesisPlugin::_dont_call_clear--;
 	}
 
-	bool TelekinesisApplyHelper7(uintptr_t rax, uintptr_t* rdx)
+	static bool TelekinesisApplyHelper7(uintptr_t rax, uintptr_t* rdx)
 	{
 		auto adding = rax;
 		auto before = Memory::Internal::read<uintptr_t>(rdx + 0x48);
@@ -1836,7 +1809,7 @@ namespace BetterTelekinesis
 		return false;
 	}
 
-	bool TelekinesisApplyHelper8(RE::ActiveEffect* ef)
+	static bool TelekinesisApplyHelper8(RE::ActiveEffect* ef)
 	{
 		if (ef != nullptr && BetterTelekinesisPlugin::IsOurSpell(ef->GetBaseObject()) != BetterTelekinesisPlugin::OurSpellTypes::TelekOne) {
 			if (Config::TelekinesisMaxObjects < 99) {
@@ -1850,7 +1823,7 @@ namespace BetterTelekinesis
 		return false;
 	}
 
-	bool TelekinesisApplyHelper10(uintptr_t rdi, const float xmm1)
+	static bool TelekinesisApplyHelper10(uintptr_t rdi, const float xmm1)
 	{
 		if (xmm1 > 0.0f) {
 			auto ef = Memory::Internal::read<RE::ActiveEffect*>(rdi);
@@ -1875,15 +1848,15 @@ namespace BetterTelekinesis
 				}
 			}
 		}
+
 		return false;
 	};
 
 	void BetterTelekinesisPlugin::apply_multi_telekinesis()
 	{
 		uintptr_t addr;
-
 		// Clear grab objects func itself.
-		if (addr = RELOCATION_ID(39480, 0).address(); REL::make_pattern<"4C 8B DC 55 56">().match(addr)) {
+		if (addr = RELOCATION_ID(39480, 40557).address(); REL::make_pattern<"4C 8B DC 55 56">().match(addr)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 5, ReplaceLength = 5, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -1896,12 +1869,14 @@ namespace BetterTelekinesis
 					push(rbp);
 					push(rsi);
 					push(rcx);
+					mov(rsi, r11);
 
 					sub(rsp, 0x20);
 					call(ptr[rip + funcLabel]);
 					add(rsp, 0x20);
 
 					pop(rcx);
+					mov(r11, rsi);
 
 					jmp(ptr[rip + retnLabel]);
 
@@ -1922,7 +1897,7 @@ namespace BetterTelekinesis
 		}
 
 		// Telekinesis dtor
-		if (addr = RELOCATION_ID(34252, 0).address() + OFFSET(0xF, 0); REL::make_pattern<"40 57 48 83 EC 30">().match(addr - 0xF)) {
+		if (addr = RELOCATION_ID(34252, 35049).address() + OFFSET(0xF, 0xF); REL::make_pattern<"40 57 48 83 EC 30">().match(addr - 0xF)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 6, ReplaceLength = 6, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -1960,7 +1935,7 @@ namespace BetterTelekinesis
 		}
 
 		// Telekinesis apply begin.
-		if (addr = RELOCATION_ID(34259, 0).address(); REL::make_pattern<"40 53 48 83 EC 40">().match(addr)) {
+		if (addr = RELOCATION_ID(34259, 35046).address(); REL::make_pattern<"40 53 48 83 EC 40">().match(addr)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 6, ReplaceLength = 6, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -1994,10 +1969,10 @@ namespace BetterTelekinesis
 			auto& trampoline = SKSE::GetTrampoline();
 			trampoline.write_branch<6>(addr, trampoline.allocate(patch));
 		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
+			stl::report_and_fail("Failed to patch Telekinesis apply begin");
 		}
 
-		if (addr = RELOCATION_ID(34259, 0).address() + OFFSET(0xE21 - 0xDC0, 0); REL::make_pattern<"C6 83 A9 00 00 00 00">().match(addr)) {
+		if (addr = RELOCATION_ID(34259, 35046).address() + OFFSET(0xE21 - 0xDC0, 0x56); REL::make_pattern<"C6 83 A9 00 00 00 00">().match(addr)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 7, ReplaceLength = 7, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -2031,10 +2006,10 @@ namespace BetterTelekinesis
 			auto& trampoline = SKSE::GetTrampoline();
 			trampoline.write_branch<5>(addr, trampoline.allocate(patch));
 		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
+			stl::report_and_fail("Failed to patch Telekinesis apply 2");
 		}
 
-		if (addr = RELOCATION_ID(34259, 0).address() + OFFSET(0xE30 - 0xDC0, 0); REL::make_pattern<"48 8B CB 48 83 C4 40">().match(addr)) {
+		if (addr = RELOCATION_ID(34259, 35046).address() + OFFSET(0xE30 - 0xDC0, 0x65); REL::make_pattern<"48 8B CB 48 83 C4 40">().match(addr)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 7, ReplaceLength = 7, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -2065,10 +2040,10 @@ namespace BetterTelekinesis
 			auto& trampoline = SKSE::GetTrampoline();
 			trampoline.write_branch<5>(addr, trampoline.allocate(patch));
 		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
+			stl::report_and_fail("Failed to patch Telekinesis apply 3");
 		}
 
-		if (addr = RELOCATION_ID(34256, 0).address(); REL::make_pattern<"48 83 EC 28 48 89 4C 24 30">().match(addr)) {
+		if (addr = RELOCATION_ID(34256, 35048).address(); REL::make_pattern<"48 83 EC 28 48 89 4C 24 30">().match(addr)) {
 			//	Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 9, ReplaceLength = 9, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -2103,10 +2078,10 @@ namespace BetterTelekinesis
 			auto& trampoline = SKSE::GetTrampoline();
 			trampoline.write_branch<5>(addr, trampoline.allocate(patch));
 		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
+			stl::report_and_fail("Failed to patch Telekinesis apply 4");
 		}
 
-		if (addr = RELOCATION_ID(34256, 0).address() + OFFSET(0xCA8 - 0xC80, 0); REL::make_pattern<"48 83 C4 28">().match(addr)) {
+		if (addr = RELOCATION_ID(34256, 35048).address() + OFFSET(0xCA8 - 0xC80, 0x7C); REL::make_pattern<"48 83 C4 28">().match(addr)) {
 			//	Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 4, ReplaceLength = 5, Before = [&](std::any ctx) {
 			struct Patch : Xbyak::CodeGenerator
 			{
@@ -2142,90 +2117,109 @@ namespace BetterTelekinesis
 
 			Memory::Internal::write<uint8_t>(addr + 5, 0xC3, true);
 		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
+			stl::report_and_fail("Failed to patch Telekinesis apply 5");
 		}
 
-		if (addr = RELOCATION_ID(34260, 0).address(); REL::make_pattern<"40 55 56 57 48 83 EC 50">().match(addr)) {
-			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 8, ReplaceLength = 8, Before = [&](std::any ctx) {
-			struct Patch : Xbyak::CodeGenerator
-			{
-				Patch(std::uintptr_t a_func, uintptr_t a_target)
-				{
-					Xbyak::Label retnLabel;
-					Xbyak::Label funcLabel;
+		auto& trampoline = SKSE::GetTrampoline();
 
+		addr = RELOCATION_ID(34260, 35047).address();
+		struct Patch : Xbyak::CodeGenerator
+		{
+			Patch(std::uintptr_t a_func, uintptr_t a_target)
+			{
+				Xbyak::Label retnLabel;
+				Xbyak::Label funcLabel;
+
+				if (!AE) {
 					push(rbp);
 					push(rsi);
 					push(rdi);
 					sub(rsp, 0x50);
-
-					mov(rsi, rcx);
-
-					sub(rsp, 0x20);
-					call(ptr[rip + funcLabel]);
-					add(rsp, 0x20);
-
-					mov(rcx, rsi);
-
-					jmp(ptr[rip + retnLabel]);
-
-					L(funcLabel);
-					dq(a_func);
-
-					L(retnLabel);
-					dq(a_target + 0x8);
+				} else {
+					push(rsi);
+					push(rdi);
+					push(r14);
+					sub(rsp, 0x40);
 				}
-			};
-			Patch patch(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper5), addr);
-			patch.ready();
 
-			auto& trampoline = SKSE::GetTrampoline();
-			trampoline.write_branch<5>(addr, trampoline.allocate(patch));
-		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
-		}
+				mov(rsi, rcx);
+				mov(rdi, rdx);
 
-		if (addr = RELOCATION_ID(34260, 0).address() + OFFSET(0x70B3 - 0x6E40, 0); REL::make_pattern<"48 83 C4 50 5F">().match(addr)) {
-			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 5, ReplaceLength = 5, Before = [&](std::any ctx) {
-			struct Patch : Xbyak::CodeGenerator
+				sub(rsp, 0x20);
+				call(ptr[rip + funcLabel]);
+				add(rsp, 0x20);
+
+				mov(rcx, rsi);
+				mov(rdx, rdi);
+
+				jmp(ptr[rip + retnLabel]);
+
+				L(funcLabel);
+				dq(a_func);
+
+				L(retnLabel);
+				dq(a_target + 0x8);
+			}
+		};
+		Patch patch(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper5), addr);
+		patch.ready();
+
+		trampoline.write_branch<5>(addr, trampoline.allocate(patch));
+
+		addr = RELOCATION_ID(34260, 35047).address() + OFFSET(0x70B3 - 0x6E40, 0x305);
+		struct Patch2 : Xbyak::CodeGenerator
+		{
+			Patch2(std::uintptr_t a_func, uintptr_t a_target)
 			{
-				Patch(std::uintptr_t a_func, uintptr_t a_target)
-				{
-					Xbyak::Label retnLabel;
-					Xbyak::Label funcLabel;
+				Xbyak::Label retnLabel;
+				Xbyak::Label funcLabel;
 
-					sub(rsp, 0x20);
-					call(ptr[rip + funcLabel]);
-					add(rsp, 0x20);
+				mov(rdi, rax);
 
+				sub(rsp, 0x20);
+				call(ptr[rip + funcLabel]);
+				add(rsp, 0x20);
+
+				mov(rax, rdi);
+
+				if (!AE) {
 					add(rsp, 0x50);
 					pop(rdi);
-
-					jmp(ptr[rip + retnLabel]);
-
-					L(funcLabel);
-					dq(a_func);
-
-					L(retnLabel);
-					dq(a_target + 0x5);
+				} else {
+					add(rsp, 0x40);
+					pop(r14);
 				}
-			};
-			Patch patch(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper6), addr);
-			patch.ready();
 
-			auto& trampoline = SKSE::GetTrampoline();
-			trampoline.write_branch<5>(addr, trampoline.allocate(patch));
+				jmp(ptr[rip + retnLabel]);
+
+				L(funcLabel);
+				dq(a_func);
+
+				L(retnLabel);
+				if (!AE) {
+					dq(a_target + 0x5);
+				} else {
+					dq(a_target + 0x6);
+				}
+			}
+		};
+		Patch2 patch2(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper6), addr);
+		patch2.ready();
+
+		if (!AE) {
+			trampoline.write_branch<5>(addr, trampoline.allocate(patch2));
 		} else {
-			stl::report_and_fail("Failed to patch Telekinesis apply");
+			trampoline.write_branch<6>(addr, trampoline.allocate(patch2));
 		}
 
 		if (Config::TelekinesisMaxObjects > 1) {
 			// Allow more than one instance of the telekinesis active effect.
-			if (addr = RELOCATION_ID(33781, 0).address() + OFFSET(0xA29 - 0xA20, 0); REL::make_pattern<"48 39 42 48">().match(addr)) {
+
+			if (addr = RELOCATION_ID(33781, 34577).address() + OFFSET(0xA29 - 0xA20, 0x9); REL::make_pattern<"48 39 42 48">().match(addr)) {
 				//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 0, ReplaceLength = 6, Before = [&](std::any ctx) {
-				struct Patch : Xbyak::CodeGenerator
+				struct Patch3 : Xbyak::CodeGenerator
 				{
-					Patch(std::uintptr_t a_func, uintptr_t a_target)
+					Patch3(std::uintptr_t a_func, uintptr_t a_target)
 					{
 						Xbyak::Label retnLabel;
 						Xbyak::Label funcLabel;
@@ -2257,76 +2251,76 @@ namespace BetterTelekinesis
 						dq(a_target + 0x6);
 					}
 				};
-				Patch patch(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper7), addr);
-				patch.ready();
+				Patch3 patch3(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper7), addr);
+				patch3.ready();
 
-				auto& trampoline = SKSE::GetTrampoline();
-				trampoline.write_branch<6>(addr, trampoline.allocate(patch));
+				trampoline.write_branch<6>(addr, trampoline.allocate(patch3));
 			} else {
 				stl::report_and_fail("Failed to patch Allow multiple Telekinesis effects");
 			}
 
 			// Allow more than one instance of the telekinesis effect (both places must be edited).
-			if (addr = RELOCATION_ID(33785, 0).address() + OFFSET(0xB80 - 0xB70, 0); REL::make_pattern<"C1 E8 12 48 8B F9">().match(addr)) {
-				//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 6, ReplaceLength = 6, Before = [&](std::any ctx) {
-				struct Patch : Xbyak::CodeGenerator
+			addr = RELOCATION_ID(33785, 34581).address() + OFFSET(0xB80 - 0xB70, 0x10);
+			struct Patch4 : Xbyak::CodeGenerator
+			{
+				Patch4(std::uintptr_t a_func, uintptr_t a_target)
 				{
-					Patch(std::uintptr_t a_func, uintptr_t a_target)
-					{
-						Xbyak::Label retnLabel;
-						Xbyak::Label funcLabel;
+					Xbyak::Label retnLabel;
+					Xbyak::Label funcLabel;
 
-						Xbyak::Label NotSkip;
+					Xbyak::Label NotSkip;
 
-						push(rcx);
-						mov(r13, rdx);
-						mov(rcx, rbx);
+					push(rcx);
+					mov(r13, rdx);
+					mov(rcx, rbx);
+					if (!AE) {
 						mov(rsi, rax);
-
-						sub(rsp, 0x20);
-						call(ptr[rip + funcLabel]);
-						add(rsp, 0x20);
-
-						cmp(eax, 1);
-						jne(NotSkip);
-
-						pop(rcx);
-						mov(rax, 1);
-						jmp(ptr[rip + retnLabel]);
-
-						L(NotSkip);
-						pop(rcx);
-						mov(rdx, r13);
-						mov(rax, rsi);
-						shr(eax, 0x12);
-						mov(rdi, rcx);
-
-						jmp(ptr[rip + retnLabel]);
-
-						L(funcLabel);
-						dq(a_func);
-
-						L(retnLabel);
-						dq(a_target + 0x6);
+					} else {
+						mov(r15, rax);
 					}
-				};
-				Patch patch(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper8), addr);
-				patch.ready();
 
-				auto& trampoline = SKSE::GetTrampoline();
-				trampoline.write_branch<6>(addr, trampoline.allocate(patch));
-			} else {
-				stl::report_and_fail("Failed to patch Allow multiple Telekinesis effects");
-			}
-		}
+					sub(rsp, 0x20);
+					call(ptr[rip + funcLabel]);
+					add(rsp, 0x20);
 
-		if (Config::TelekinesisMaxObjects > 1) {
+					cmp(eax, 1);
+					jne(NotSkip);
+
+					pop(rcx);
+					mov(rdx, r13);
+					mov(rax, 1);
+					jmp(ptr[rip + retnLabel]);
+
+					L(NotSkip);
+					pop(rcx);
+					mov(rdx, r13);
+					if (!AE) {
+						mov(rax, rsi);
+					} else {
+						mov(rax, r15);
+					}
+					shr(eax, 0x12);
+					mov(rdi, rcx);
+
+					jmp(ptr[rip + retnLabel]);
+
+					L(funcLabel);
+					dq(a_func);
+
+					L(retnLabel);
+					dq(a_target + 0x6);
+				}
+			};
+			Patch4 patch4(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper8), addr);
+			patch4.ready();
+
+			trampoline.write_branch<6>(addr, trampoline.allocate(patch4));
+
 			// Fix telekinesis gaining skill for each instance of the effect.
-			if (addr = RELOCATION_ID(33321, 0).address() + OFFSET(0x2D, 0); REL::make_pattern<"E8">().match(addr)) {
-				//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 5, ReplaceLength = 5, After = [&](std::any ctx) {
-				struct Patch : Xbyak::CodeGenerator
+			if (addr = RELOCATION_ID(33321, 34100).address() + OFFSET(0x2D, 0x6A); REL::make_pattern<"E8">().match(addr)) {
+				struct Patch5 : Xbyak::CodeGenerator
 				{
-					Patch(std::uintptr_t a_func, uintptr_t a_target)
+					Patch5(std::uintptr_t a_func, uintptr_t a_target)
 					{
 						Xbyak::Label retnLabel;
 						Xbyak::Label funcLabel;
@@ -2335,30 +2329,39 @@ namespace BetterTelekinesis
 						Xbyak::Label NotSkip;
 
 						mov(rcx, rdi);
-						mov(rsi, rsp);
-						movaps(xmm0, xmm1);
+						if (AE) {
+							mov(rbx, r11);
+						}
 
 						sub(rsp, 0x20);
 						call(ptr[rip + funcLabel]);
 						add(rsp, 0x20);
 
-						test(eax, 1);
+						cmp(eax, 1);
 						jne(NotSkip);
-						pop(rax);
-						mov(rax, 0);
-						mov(rsp, rsi);
+						if (!AE) {
+							mov(rax, 0);
+
+						} else {
+							mov(r11, rbx);
+
+							mov(rax, 0);
+							mov(ptr[rsp + 0xA8], rax);
+						}
 						jmp(ptr[rip + retnLabel]);
 
 						L(NotSkip);
-						pop(rax);
-
-						mov(rcx, rdi);
+						if (!AE) {
+							mov(rcx, rdi);
+						} else {
+							mov(r11, rbx);
+							lea(rdx, ptr[r11 + 0x20]);
+							lea(rcx, ptr[r11 + 0x8]);
+						}
 
 						sub(rsp, 0x20);
 						call(ptr[rip + funcLabel2]);  // Call Orignal Function ValueModifierEffect::sub_140540410
 						add(rsp, 0x20);
-
-						mov(rsp, rsi);
 
 						jmp(ptr[rip + retnLabel]);
 
@@ -2366,33 +2369,23 @@ namespace BetterTelekinesis
 						dq(a_func);
 
 						L(funcLabel2);
-						dq(RELOCATION_ID(33322, 0).address());
+						dq(RELOCATION_ID(33322, 17201).address());
 
 						L(retnLabel);
 						dq(a_target + 0x5);
 					}
 				};
-				Patch patch(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper10), addr);
-				patch.ready();
+				Patch5 patch5(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper10), addr);
+				patch5.ready();
 
-				auto& trampoline = SKSE::GetTrampoline();
-				trampoline.write_branch<5>(addr, trampoline.allocate(patch));
+				trampoline.write_branch<5>(addr, trampoline.allocate(patch5));
 			} else {
 				stl::report_and_fail("Failed to patch Allow multiple Telekinesis effects");
 			}
 		}
 	}
 
-	uint32_t BetterTelekinesisPlugin::_last_tk_sound = 0;
-	uint32_t BetterTelekinesisPlugin::_last_tk_sound2 = 0;
-
-	BetterTelekinesisPlugin::saved_grab_index::saved_grab_index()
-	{
-	}
-
-	std::recursive_mutex BetterTelekinesisPlugin::grabindex_locker;
-	std::mutex BetterTelekinesisPlugin::normal_locker;
-	int BetterTelekinesisPlugin::_placement_barrage = 0;
+	BetterTelekinesisPlugin::saved_grab_index::saved_grab_index() = default;
 
 	int BetterTelekinesisPlugin::unsafe_find_free_index()
 	{
@@ -2455,8 +2448,8 @@ namespace BetterTelekinesis
 				g->wgt = plr->grabObjectWeight;
 				g->dist = plr->grabDistance;
 				g->handle = plr->grabbedObject.native_handle();
-				memcpy(g->spring, reinterpret_cast<char*>(plr) + 0x898, 0x30);
-				g->grabtype = plr->grabType.underlying();
+				memcpy_s(g->spring, 0x30, plr->grabSpring.data(), 0x30);
+				g->grabtype = plr->grabType;
 				g->index_of_obj = -1;
 
 				saved_grabindex[0] = g;
@@ -2467,10 +2460,15 @@ namespace BetterTelekinesis
 				g->addr = addr;
 				g->dist = 0.0f;
 				g->handle = 0;
-				g->grabtype = 0;
-				Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(g->spring_alloc), 0x80000000);
-				Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(g->spring_alloc + 0x28), 0);
-				memcpy(g->spring, g->spring_alloc, 0x30);
+				g->grabtype = RE::PlayerCharacter::GrabbingType::kNone;
+				if (!AE) {
+					Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(g->spring_alloc), 0x80000000);
+					Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(g->spring_alloc + 0x28), 0);
+				} else {
+					Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(g->spring_alloc), 0x80000000);
+					Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(g->spring_alloc + 0x8), 0x80000000);
+				}
+				memcpy_s(g->spring, 0x30, g->spring_alloc, 0x30);
 				g->index_of_obj = unsafe_find_free_index();
 				g->rng = random_move_generator();
 
@@ -2492,16 +2490,16 @@ namespace BetterTelekinesis
 			prev->wgt = plr->grabObjectWeight;
 			prev->dist = plr->grabDistance;
 			prev->handle = plr->grabbedObject.native_handle();
-			memcpy(prev->spring, reinterpret_cast<char*>(plr) + 0x898, 0x30);
-			prev->grabtype = Memory::Internal::read<int>(reinterpret_cast<char*>(plr) + 0xAF4);
+			memcpy_s(prev->spring, 0x30, plr->grabSpring.data(), 0x30);
+			prev->grabtype = plr->grabType;
 
 			current_grabindex = addr;
 
 			plr->grabObjectWeight = g->wgt;
 			plr->grabDistance = g->dist;
 			plr->grabbedObject = RE::TESObjectREFR::LookupByHandle(g->handle).get();
-			memcpy(reinterpret_cast<char*>(plr) + 0x898, g->spring, 0x30);
-			Memory::Internal::write<uint32_t>(reinterpret_cast<uintptr_t>(plr) + 0xAF4, g->grabtype);
+			memcpy_s(plr->grabSpring.data(), 0x30, g->spring, 0x30);
+			plr->grabType = g->grabtype;
 		}
 	}
 
@@ -2631,44 +2629,29 @@ namespace BetterTelekinesis
 		rigidBody->SetAngularVelocity(alloc);
 	}
 
-	void BetterTelekinesisPlugin::update_point_forward(RE::NiNode* node)
+	void BetterTelekinesisPlugin::update_point_forward(RE::TESObjectREFR* obj)
 	{
-		if (node == nullptr) {
+		if (obj == nullptr) {
 			return;
 		}
 
-		auto pcam = RE::PlayerCamera::GetSingleton();
-		if (pcam == nullptr) {
-			return;
-		}
+		auto plr = RE::PlayerCharacter::GetSingleton();
 
-		auto& camNode = pcam->cameraRoot;
-		if (camNode == nullptr) {
-			return;
-		}
-
-		auto colNode = node->GetCollisionObject();
-		if (colNode == nullptr) {
-			return;
-		}
-
-		auto rigidBody = colNode->GetRigidBody();
-		if (rigidBody == nullptr) {
+		if (plr == nullptr) {
 			return;
 		}
 
 		RE::NiPoint3 pt;
-		//auto pt = Util::GetEulerAngles(node->world.rotate);
-		//auto pt = Util::GetEulerAngles2(node->world.rotate);
-		node->world.rotate.ToEulerAnglesXYZ(pt);
 
 		float hasX = pt.x;
 		float hasY = pt.y;
 		float hasZ = pt.z;
 
-		//pt = Util::GetEulerAngles(camNode->world.rotate);
-		//pt = Util::GetEulerAngles2(camNode->world.rotate);
-		camNode->world.rotate.ToEulerAnglesXYZ(pt);
+		pt = plr->data.angle;
+
+		auto rot = RE::hkQuaternion{ { pt.x, pt.y, pt.z, 0.0f } };
+		obj->SetAngle(pt);
+		obj->Update3DPosition(true);
 
 		float wantX = pt.x;
 		float wantY = pt.y;
@@ -2681,7 +2664,7 @@ namespace BetterTelekinesis
 		//RE::hkVector4 result(rotate_speed(-diffY), rotate_speed(-diffX), rotate_speed(-diffZ), 0.0f);
 		RE::hkVector4 result(rotate_speed(-diffX), rotate_speed(-diffY), rotate_speed(-diffZ), 0.0f);
 
-		rigidBody->SetAngularVelocity(result);
+		//rigidBody->SetAngularVelocity(result);
 	}
 
 	void BetterTelekinesisPlugin::update_held_object(RE::TESObjectREFR* obj, const std::shared_ptr<held_obj_data>& data, const std::vector<RE::ActiveEffect*>& effectList)
@@ -2692,9 +2675,7 @@ namespace BetterTelekinesis
 
 		if (Config::PointWeaponsAndProjectilesForward) {
 			if (obj->As<RE::TESObjectWEAP>() != nullptr || obj->As<RE::Projectile>() != nullptr || IsOurItem(obj->GetBaseObject()) != OurItemTypes::None) {
-				if (obj->Get3D() != nullptr) {
-					update_point_forward(obj->Get3D()->AsNode());
-				}
+				update_point_forward(obj);
 			}
 		}
 
@@ -2800,7 +2781,7 @@ namespace BetterTelekinesis
 				if (form2 != nullptr) {
 					//obj->StopEffect(form2);
 					REL::Relocation<void (*)(RE::BGSPackageDataBool*, RE::TESObjectREFR*, RE::TESEffectShader*)> StopEffect{ RELOCATION_ID(40381, 0) };
-					StopEffect(reinterpret_cast<RE::BGSPackageDataBool*>(RELOCATION_ID(514167, 0).address()), obj, form2);
+					StopEffect(reinterpret_cast<RE::BGSPackageDataBool*>(RELOCATION_ID(514167, 400315).address()), obj, form2);
 				}
 			}
 
@@ -2814,7 +2795,7 @@ namespace BetterTelekinesis
 				if (form2 != nullptr) {
 					//obj->StopEffect(form2);
 					REL::Relocation<void (*)(RE::BGSPackageDataBool*, RE::TESObjectREFR*, RE::TESEffectShader*)> StopEffect{ RELOCATION_ID(40381, 0) };
-					StopEffect(reinterpret_cast<RE::BGSPackageDataBool*>(RELOCATION_ID(514167, 0).address()), obj, form2);
+					StopEffect(reinterpret_cast<RE::BGSPackageDataBool*>(RELOCATION_ID(514167, 400315).address()), obj, form2);
 				}
 			}
 
@@ -3084,7 +3065,7 @@ namespace BetterTelekinesis
 		}
 
 		{
-			std::scoped_lock lock(CachedHandlesLocker);
+			std::scoped_lock lock(SwordPositionLocker);
 			for (const auto& key : CachedHeldHandles | std::views::keys) {
 				{
 					auto objRef = RE::TESObjectREFR::LookupByHandle(key);
@@ -3119,9 +3100,8 @@ namespace BetterTelekinesis
 		}
 
 		sword_data::Temp2 = Util::Translate(camWt, sword_data::Temp1);
-		//sword_data::Temp3 = Util::GetEulerAngles(camWt.rotate);
-		//sword_data::Temp3 = Util::GetEulerAngles2(camWt.rotate.ToEulerAnglesXYZ(sword_data::Temp3));
-		camWt.rotate.ToEulerAnglesXYZ(sword_data::Temp3);
+		sword_data::Temp3 = plr->data.angle;
+		//camWt.rotate.ToEulerAnglesXYZ(sword_data::Temp3);
 
 		begin = { hpos.x, hpos.y, hpos.z, 0.0f };
 		end = { sword_data::Temp2.x, sword_data::Temp2.y, sword_data::Temp2.z, 0.0f };
@@ -3219,13 +3199,14 @@ namespace BetterTelekinesis
 		bool castingNormal = false;
 
 		for (auto ef : casting) {
-			auto st = IsOurSpell(ef);
-			switch (st) {
+			switch (IsOurSpell(ef)) {
 			case OurSpellTypes::SwordBarrage:
 				castingGhost = true;
 				break;
 			case OurSpellTypes::SwordBlast:
 				castingNormal = true;
+				break;
+			default:
 				break;
 			}
 		}
@@ -3283,8 +3264,7 @@ namespace BetterTelekinesis
 			return;
 		}
 
-		auto st = IsOurSpell(efs);
-		switch (st) {
+		switch (IsOurSpell(efs)) {
 		case OurSpellTypes::SwordBarrage:
 			{
 				TryPlaceSwordNow(true);
@@ -3295,6 +3275,8 @@ namespace BetterTelekinesis
 			{
 				TryPlaceSwordNow(false);
 			}
+			break;
+		default:
 			break;
 		}
 	}
@@ -3319,6 +3301,8 @@ namespace BetterTelekinesis
 						return OurSpellTypes::SwordBlast;
 					case spell_types::barrage:
 						return OurSpellTypes::SwordBarrage;
+					default:
+						break;
 					}
 				}
 			}
@@ -3346,6 +3330,8 @@ namespace BetterTelekinesis
 						return OurItemTypes::IronSword;
 					case spell_types::barrage:
 						return OurItemTypes::GhostSword;
+					default:
+						break;
 					}
 				}
 			}
@@ -3384,6 +3370,8 @@ namespace BetterTelekinesis
 					case OurSpellTypes::TelekNormal:
 					case OurSpellTypes::TelekOne:
 						return true;
+					default:
+						break;
 					}
 				}
 			}
@@ -3432,12 +3420,6 @@ namespace BetterTelekinesis
 			}
 		}
 	}
-
-	RE::NiPoint3 sword_data::Temp1;
-	RE::NiPoint3 sword_data::Temp2;
-	RE::NiPoint3 sword_data::Temp3;
-	RE::NiPoint3 sword_data::Return1;
-	RE::NiPoint3 sword_data::Return2;
 
 	bool sword_instance::IsFreeForSummon(double now) const
 	{
@@ -3489,12 +3471,6 @@ namespace BetterTelekinesis
 	}
 
 	bool find_nearest_node_helper::inited = false;
-	RE::NiPoint3 find_nearest_node_helper::Begin;
-	RE::NiPoint3 find_nearest_node_helper::End;
-	RE::NiPoint3 find_nearest_node_helper::Temp1;
-	RE::NiPoint3 find_nearest_node_helper::Temp2;
-	RE::NiPoint3 find_nearest_node_helper::Temp3;
-	RE::NiPoint3 find_nearest_node_helper::Temp4;
 
 	void find_nearest_node_helper::init()
 	{
@@ -3712,8 +3688,8 @@ namespace BetterTelekinesis
 
 	void random_move_generator::select_target()
 	{
-		thread_local std::random_device rd;
-		thread_local std::mt19937 generator(rd());
+		thread_local static std::random_device rd;
+		thread_local static std::mt19937 generator(rd());
 		std::uniform_real_distribution<> distribution(0, 1.0);
 		double chosen_x = (distribution(generator) - 0.5) * 2.0 * Config::MultiObjectHoverAmount;
 		double chosen_y = (distribution(generator) - 0.5) * 2.0 * Config::MultiObjectHoverAmount;
@@ -3923,13 +3899,11 @@ namespace BetterTelekinesis
 		}
 
 		std::string str = R"(Clutter\Books\SpellTomeAlterationLowPoly.nif)";
-		//book->InvokeVTableThisCall<RE::TESModelTextureSwap*>(0x28, alloc);?
 		book->SetModel(str.c_str());
 
 		auto form = RE::TESForm::LookupByID<RE::TESObjectSTAT>(0x2FBB3);
 		if (form != nullptr) {
 			book->inventoryModel = form;
-			//Memory::Internal::write(reinterpret_cast<uintptr_t>(book) + 0x120, form);
 		}
 
 		levels lv;
@@ -3967,10 +3941,8 @@ namespace BetterTelekinesis
 		auto perk = perkId != 0 ? RE::TESForm::LookupByID<RE::BGSPerk>(perkId) : nullptr;
 		if (perk == nullptr) {
 			spell->data.castingPerk = nullptr;
-			//Memory::Internal::write(reinterpret_cast<uintptr_t>(spell) + 0xE0, 0);
 		} else {
 			spell->data.castingPerk = perk;
-			//Memory::Internal::write(reinterpret_cast<uintptr_t>(spell) + 0xE0, perk);
 		}
 	}
 
@@ -3978,19 +3950,9 @@ namespace BetterTelekinesis
 	{
 		if (list != nullptr && book != nullptr) {
 			//list->entries.list->addEntry(book, 1, 1, nullptr);
-			if (list->numEntries != 255) {
-				RE::MemoryManager mm = *RE::MemoryManager::GetSingleton();
-				auto ll = (RE::LEVELED_OBJECT*)mm.Allocate(sizeof(RE::LEVELED_OBJECT) * (list->numEntries + 1) + sizeof(size_t), 0, 0);
-				for (int i = 0; i < list->numEntries; i++) {
-					ll[i] = list->entries[i];
-				}
-				RE::LEVELED_OBJECT bookEntry{};
-				bookEntry.count = 1;
-				bookEntry.level = 1;
-				bookEntry.form = RE::TESForm::LookupByID(book->formID);
-				memcpy(&ll[list->numEntries], &bookEntry, sizeof(RE::LEVELED_OBJECT));
-				memcpy(&list->entries, ll, sizeof(ll));
-			}
+
+			REL::Relocation<void (*)(RE::TESLeveledList*, int16_t, uint16_t, RE::TESForm*, RE::ContainerItemExtra*)> addEntry{ RELOCATION_ID(14577, 14749).address() };
+			addEntry(list, 1, 1, book->As<RE::TESForm>(), nullptr);
 		}
 	}
 

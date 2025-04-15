@@ -1,5 +1,4 @@
 set(headers ${headers}
-	include/BetterTelekinesis/bankersrounding.h
 	include/BetterTelekinesis/Config.h
 	include/BetterTelekinesis/Events.h
 	include/BetterTelekinesis/Logging.h

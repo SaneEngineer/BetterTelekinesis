@@ -22,7 +22,7 @@ namespace BetterTelekinesis
 		std::string res;
 		for (auto q : vls) {
 			try {
-			res + fmt::format(fmt::runtime("{:.4f} "), q);
+			res += format(fmt::runtime("{:.4f} "), q);
 			} catch (fmt::format_error e) {
 				logger::error(fmt::runtime("Failed to format string: " + std::string(e.what())));
             }

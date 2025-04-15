@@ -25,7 +25,7 @@ namespace BetterTelekinesis
 		RE::UI::GetSingleton()->AddEventSink(GetSingleton());
 	}
 
-	RE::BSEventNotifyControl HotkeyPressedEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_eventSource)
+	RE::BSEventNotifyControl HotkeyPressedEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*)
 	{
 		if (a_event) {
 			for (auto event = *a_event; event; event = event->next) {

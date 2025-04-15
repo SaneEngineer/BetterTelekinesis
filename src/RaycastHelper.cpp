@@ -105,10 +105,7 @@ Raycast::RayResult Raycast::hkpCastRay(const glm::vec4& start, const glm::vec4& 
 	try {
 		auto physicsWorld = cell->GetbhkWorld();
 		if (physicsWorld) {
-			//physicsWorld->PickObject(pickData);
-			if (physicsWorld->PickObject(pickData); pickData.rayOutput.HasHit()) {
-				result.CollisionLayer = static_cast<RE::COL_LAYER>(pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F);
-			}
+			physicsWorld->PickObject(pickData);
 		}
 	} catch (...) {
 	}
