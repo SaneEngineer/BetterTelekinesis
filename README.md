@@ -1,6 +1,6 @@
 ## BetterTelekinesis 
 
-SKSE port of BetterTelekinesis by meh321 using Commonnlib. Currently supports SE and AE. VR support planned. Config options have remained the same, the new config is BetterTelekinesis.ini in SKSE/Plugins. All features except Dragon Telekinesis should be functional in SE and AE. Currently planned are further cleanup and refactoring, a switch to Commonlib-NG and VR support, and bug fixes.
+SKSE port of BetterTelekinesis by meh321 using Commonlib. Currently supports SE and AE. VR support planned. Config options have remained the same, the new config is BetterTelekinesis.ini in data/SKSE/Plugins/. All features except Dragon Telekinesis should be functional in SE and AE. Currently planned are further cleanup and refactoring, a switch to Commonlib-NG and VR support, and bug fixes.
 
 ## Current Issues
 
