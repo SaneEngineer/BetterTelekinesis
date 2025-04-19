@@ -12,7 +12,7 @@
 namespace BetterTelekinesis
 {
 	static std::mutex locker_picked;
-	static std::mutex CachedHandlesLocker;
+	static std::recursive_mutex CachedHandlesLocker;
 	static std::mutex SwordPositionLocker;
 	static std::mutex updateLocker;
 	static std::recursive_mutex grabindex_locker;
@@ -215,7 +215,7 @@ namespace BetterTelekinesis
 
 						if (Config::DontLaunchIfRunningOutOfMagicka) {
 							auto plr = RE::PlayerCharacter::GetSingleton();
-							if (plr != nullptr && plr->GetActorValue(RE::ActorValue::kMagicka) <= 0.01f) {
+							if (plr != nullptr && plr->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMagicka) <= 0.01f) {
 								return;
 							}
 						}
@@ -259,7 +259,7 @@ namespace BetterTelekinesis
 
 						if (Config::DontLaunchIfRunningOutOfMagicka) {
 							auto plr = RE::PlayerCharacter::GetSingleton();
-							if (plr != nullptr && plr->GetActorValue(RE::ActorValue::kMagicka) <= 0.01f) {
+							if (plr != nullptr && plr->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMagicka) <= 0.01f) {
 								return;
 							}
 						}
@@ -298,7 +298,7 @@ namespace BetterTelekinesis
 
 						if (Config::DontLaunchIfRunningOutOfMagicka) {
 							auto plr = RE::PlayerCharacter::GetSingleton();
-							if (plr != nullptr && plr->GetActorValue(RE::ActorValue::kMagicka) <= 0.01f) {
+							if (plr != nullptr && plr->AsActorValueOwner()->GetActorValue(RE::ActorValue::kMagicka) <= 0.01f) {
 								return;
 							}
 						}
@@ -338,7 +338,7 @@ namespace BetterTelekinesis
 									_total_telek_time += _profile_timer->elapsed<>() - bgt;
 
 									if (_times_telek_time++ % 10 == 1) {
-										logger::debug(fmt::runtime("profiler: {.2f} <- {} ; {f}"), static_cast<double>(_total_telek_time / 1000) / static_cast<double>(_times_telek_time), _times_telek_time, RE::PlayerCharacter::GetSingleton()->telekinesisDistance);
+										logger::debug(fmt::runtime("profiler: {.2f} <- {} ; {f}"), static_cast<double>(_total_telek_time / 1000) / static_cast<double>(_times_telek_time), _times_telek_time, RE::PlayerCharacter::GetSingleton()->GetPlayerRuntimeData().telekinesisDistance);
 									}
 								}
 							}
@@ -469,7 +469,7 @@ namespace BetterTelekinesis
 							{
 								auto objRef = RE::TESObjectREFR::LookupByHandle(actorHandle);
 								if (objRef->IsHandleValid()) {
-									auto ac = dynamic_cast<RE::Actor*>(objRef.get());
+									auto ac = objRef->As<RE::Actor>();
 									if (ac != nullptr) {
 										DisarmActor(ac);
 									}
@@ -513,7 +513,7 @@ namespace BetterTelekinesis
 				static void thunk(const RE::PlayerCharacter* plr)
 				{
 					// plr->grabType = plr + 0xAF4
-					if (current_grabindex != 0 || plr->grabType.underlying() != 0) {
+					if (current_grabindex != 0 || plr->GetPlayerRuntimeData().grabType.underlying() != 0) {
 						clear_grabindex(false);
 					}
 				}
@@ -543,7 +543,7 @@ namespace BetterTelekinesis
 						if (saved_grabindex.contains(pt)) {
 							auto& g = saved_grabindex.at(pt);
 							indexOfMe = g->index_of_obj;
-							if (!g->rng.has_value()) {
+							if (g->rng.has_value()) {
 								extraX = g->rng->getCurrentX();
 								extraY = g->rng->getCurrentY();
 							}
@@ -632,38 +632,37 @@ namespace BetterTelekinesis
 
 			static void Install()
 			{
-				stl::write_thunk_call<LimitTelekinesisSound1>(RELOCATION_ID(34259, 35046).address() + OFFSET(0xE1C - 0xDC0, 0x51));
-				stl::write_thunk_call<LimitTelekinesisSound2>(RELOCATION_ID(34250, 35052).address() + OFFSET(0x4C4 - 0x250, 0x243));
+				stl::write_thunk_call<LimitTelekinesisSound1>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0xE1C - 0xDC0, 0x51));
+				stl::write_thunk_call<LimitTelekinesisSound2>(RELOCATION_ID(34250, 35052).address() + REL::Relocate(0x4C4 - 0x250, 0x243));
 
-				stl::write_thunk_call<FixGrabActorHoldHostility>(RELOCATION_ID(33564, 34333).address() + OFFSET(0xC7C - 0xB40, 0x135));
-#ifdef SKYRIM_AE
-				stl::write_thunk_call<TelekinesisLaunchAE>(RELOCATION_ID(34256, 35048).address() + OFFSET(0x1C, 0x58));
-#else
-				stl::write_thunk_call<TelekinesisLaunchSE>(RELOCATION_ID(34256, 35048).address() + OFFSET(0x1C, 0x58));
-#endif
-				stl::write_thunk_call<GrabActorLaunch>(RELOCATION_ID(33559, 34335).address() + OFFSET(0x8AD - 0x730, 0x17D));
+				stl::write_thunk_call<FixGrabActorHoldHostility>(RELOCATION_ID(33564, 34333).address() + REL::Relocate(0xC7C - 0xB40, 0x135));
+				if (REL::Module::get().IsAE()) {
+					stl::write_thunk_call<TelekinesisLaunchAE>(RELOCATION_ID(34256, 35048).address() + REL::Relocate(0x1C, 0x58));
+				} else {
+					stl::write_thunk_call<TelekinesisLaunchSE>(RELOCATION_ID(34256, 35048).address() + REL::Relocate(0x1C, 0x58));
+				}
+				stl::write_thunk_call<GrabActorLaunch>(RELOCATION_ID(33559, 34335).address() + REL::Relocate(0x8AD - 0x730, 0x17D));
 
 				if (Config::OverwriteTargetPicker) {
-					stl::write_thunk_call<ApplyOverwriteTargetPick>(RELOCATION_ID(39534, 40620).address() + OFFSET(0x5E4 - 0x3D0, 0x1D5));
-					stl::write_thunk_call<ApplyOverwriteTargetPick2>(RELOCATION_ID(34259, 35046).address() + OFFSET(0x19, 0x19));
+					stl::write_thunk_call<ApplyOverwriteTargetPick>(RELOCATION_ID(39534, 40620).address() + REL::Relocate(0x5E4 - 0x3D0, 0x1D5));
+					stl::write_thunk_call<ApplyOverwriteTargetPick2>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0x19, 0x19));
 				}
 
-				// Player update func, clears grabbed objects in some cases.
 				//Multi-telekinesis
 				if (Config::TelekinesisMaxObjects > 1) {
-					auto addr = RELOCATION_ID(39375, 40447).address() + OFFSET(0xEC86 - 0xE770, 0xA67);
+					auto addr = RELOCATION_ID(39375, 40447).address() + REL::Relocate(0xEC86 - 0xE770, 0xA67);
 					REL::safe_fill(addr, 0x90, 0xC);
+					// Player update func, clears grabbed objects in some cases.
+					stl::write_thunk_call<PlayerUpdateClear>(RELOCATION_ID(39375, 40447).address() + REL::Relocate(0x522, 0xA73));
 
-					stl::write_thunk_call<PlayerUpdateClear>(RELOCATION_ID(39375, 40447).address() + OFFSET(0x522, 0xA73));
+					stl::write_thunk_call<PlayerRevertClear>(RELOCATION_ID(39466, 40543).address() + REL::Relocate(0x9837 - 0x9620, 0x3C6));
+					stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0));
 
-					stl::write_thunk_call<PlayerRevertClear>(RELOCATION_ID(39466, 40543).address() + OFFSET(0x9837 - 0x9620, 0x3C6));
-					stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + OFFSET(0x1E2, 0x1B0));
-
-					stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + OFFSET(0xC273 - 0xC0F0, 0x176));
+					stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176));
 				}
 
-				bool marketplace = OFFSET(false, REL::Module::get().version() >= SKSE::RUNTIME_1_6_1130);
-				stl::write_thunk_call<MainUpdate_Nullsub>(RELOCATION_ID(35565, 36564).address() + OFFSET_3(0x748, (marketplace ? 0xC2b : 0xC26), 0x7EE));
+				bool marketplace = REL::Relocate(false, REL::Module::get().version() >= SKSE::RUNTIME_SSE_1_6_1130);
+				stl::write_thunk_call<MainUpdate_Nullsub>(RELOCATION_ID(35565, 36564).address() + REL::Relocate(0x748, (marketplace ? 0xC2b : 0xC26), 0x7EE));
 			}
 		};
 
@@ -680,7 +679,6 @@ namespace BetterTelekinesis
 		static uintptr_t addr_CanBeTelekinesis;
 		static uintptr_t addr_PickDistance;
 
-	public:
 		inline static float _reach_spell = 0.0f;
 
 		class held_obj_data final
@@ -694,8 +692,7 @@ namespace BetterTelekinesis
 			int __update_counter = 0;
 		};
 
-	public:
-		static std::unordered_map<RE::RefHandle, std::shared_ptr<held_obj_data>> CachedHeldHandles;
+		static inline std::unordered_map<RE::RefHandle, std::shared_ptr<held_obj_data>> CachedHeldHandles;
 
 		static void ForeachHeldHandle(const std::function<void(std::shared_ptr<held_obj_data>)>& func);
 
@@ -729,16 +726,16 @@ namespace BetterTelekinesis
 
 		static void apply_good_stuff();
 
-		static RE::TESObjectREFR* sword_ReturnMarker;
+		static inline RE::TESObjectREFR* sword_ReturnMarker;
 
 		static std::vector<RE::ActiveEffect*> GetCurrentRelevantActiveEffects();
 
-		static uint32_t _last_updated_telek;
-		static bool _next_update_telek;
-		static bool _last_weap_out;
+		static inline uint32_t _last_updated_telek = 0;
+		static inline bool _next_update_telek = false;
+		static inline bool _last_weap_out = false;
 
-		static uintptr_t _total_telek_time;
-		static uintptr_t _times_telek_time;
+		static inline uintptr_t _total_telek_time = 0;
+		static inline uintptr_t _times_telek_time = 0;
 
 	public:
 		static void ForceUpdateTelekinesis();
@@ -802,7 +799,6 @@ namespace BetterTelekinesis
 		inline static std::vector<RE::RefHandle> grabactor_picked;
 
 	private:
-		inline static int debug_msg = false;
 		inline static uint32_t last_debug_pick = 0;
 		inline static bool debug_pick = false;
 
@@ -908,13 +904,13 @@ namespace BetterTelekinesis
 
 		static int unsafe_find_free_index();
 
-		static uintptr_t current_grabindex;
+		inline static uintptr_t current_grabindex;
 
-		static void switch_to_grabindex(uintptr_t addr, float diff = 0.0f);
+		static void switch_to_grabindex(uintptr_t addr, const std::string& reason, float diff = 0.0f);
 
-		static int _dont_call_clear;
+		static inline int _dont_call_clear = 0;
 
-		static void free_grabindex(uintptr_t addr);
+		static void free_grabindex(uintptr_t addr, const std::string& reason);
 
 		static void clear_grabindex(bool onlyIfCount);
 

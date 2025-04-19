@@ -29,7 +29,7 @@ namespace BetterTelekinesis
 		static inline std::string ResponsiveHoldParams = getDefaultResponsiveHoldParameters();
 		static inline double ThrowActorDamage = 0.0f;
 		static inline double HoldActorDamage = 0.0f;
-		static inline int AbortTelekinesisHotkey = 160;
+		static inline int AbortTelekinesisHotkey = 42;
 		static inline bool LaunchIsHotkeyInstead = false;
 		static inline bool DontLaunchIfRunningOutOfMagicka = true;
 		static inline bool OverwriteTargetPicker = true;
@@ -50,7 +50,6 @@ namespace BetterTelekinesis
 		static inline std::string GrabActorNodePriority = "NPC Spine2 [Spn2]";
 		static inline bool AutoLearnTelekinesisSpell = false;
 		static inline int TelekinesisLabelMode = 1;
-		static inline bool FixDragonsNotBeingTelekinesisable = false;
 		static inline bool FixGrabActorHoldHostility = true;
 		static inline bool DontDeactivateHavokHoldSpring = true;
 		static inline double MultiObjectHoverAmount = 4.0f;

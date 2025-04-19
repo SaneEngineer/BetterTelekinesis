@@ -86,7 +86,6 @@ namespace Raycast
 		RE::Character* hitCharacter = nullptr;
 		// If the ray hits a havok object, this will point to it
 		RE::NiAVObject* hitObject = nullptr;
-		RE::COL_LAYER CollisionLayer;
 		// The length of the ray from start to hitPos
 		float rayLength = 0.0f;
 		// A vector of hits to be iterated in original code

@@ -28,17 +28,14 @@ namespace BetterTelekinesis
 	RE::BSEventNotifyControl HotkeyPressedEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*)
 	{
 		if (a_event) {
-			for (auto event = *a_event; event; event = event->next) {
-				if (event->eventType == RE::INPUT_EVENT_TYPE::kButton) {
-					auto buttonEvent = dynamic_cast<const RE::ButtonEvent*>(event);
-					if (buttonEvent && buttonEvent->IsPressed()) {
-						auto key = buttonEvent->GetIDCode();
-						if (buttonEvent->device == RE::INPUT_DEVICE::kKeyboard) {
-							if (Config::DontLaunchIfRunningOutOfMagicka || Config::LaunchIsHotkeyInstead || Config::ThrowActorDamage > 0.0f) {
-								if (key == static_cast<unsigned>(Config::AbortTelekinesisHotkey)) {
-									BetterTelekinesisPlugin::_try_drop_now();
-								}
-							}
+			auto event = *a_event;
+			auto buttonEvent = event ? event->AsButtonEvent() : nullptr;
+			if (buttonEvent) {
+				auto key = buttonEvent->GetIDCode();
+				if (buttonEvent->device == RE::INPUT_DEVICE::kKeyboard) {
+					if (Config::DontLaunchIfRunningOutOfMagicka || Config::LaunchIsHotkeyInstead || Config::ThrowActorDamage > 0.0f) {
+						if (key == static_cast<unsigned>(Config::AbortTelekinesisHotkey)) {
+							BetterTelekinesisPlugin::_try_drop_now();
 						}
 					}
 				}

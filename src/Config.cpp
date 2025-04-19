@@ -110,7 +110,6 @@ namespace BetterTelekinesis
 				ReadStringSetting(ini, "BetterTelekinesisConfig", "GrabActorNodePriority", GrabActorNodePriority);
 				ReadBoolSetting(ini, "BetterTelekinesisConfig", "AutoLearnTelekinesisSpell", AutoLearnTelekinesisSpell);
 				ReadIntSetting(ini, "BetterTelekinesisConfig", "TelekinesisLabelMode", TelekinesisLabelMode);
-				ReadBoolSetting(ini, "BetterTelekinesisConfig", "FixDragonsNotBeingTelekinesisable", FixDragonsNotBeingTelekinesisable);
 				ReadBoolSetting(ini, "BetterTelekinesisConfig", "FixGrabActorHoldHostility", FixGrabActorHoldHostility);
 				ReadBoolSetting(ini, "BetterTelekinesisConfig", "DontDeactivateHavokHoldSpring", DontDeactivateHavokHoldSpring);
 				ReadDoubleSetting(ini, "BetterTelekinesisConfig", "MultiObjectHoverAmount", MultiObjectHoverAmount);
@@ -199,7 +198,6 @@ namespace BetterTelekinesis
 		ini.SetValue("BetterTelekinesisConfig", "GrabActorNodePriority", GrabActorNodePriority.c_str(), R"(;Decide by which node an actor is grabbed by. This setting does nothing if you have enabled GrabActorNodeNearest!!! If a node is not available on actor it will try the next node in list. For example GrabActorNodePriority = "NPC Neck [Neck];NPC Spine2 [Spn2] The above would make NPCs be held by their necks if they have one, and if not then spine.")");
 		ini.SetBoolValue("BetterTelekinesisConfig", "AutoLearnTelekinesisSpell", AutoLearnTelekinesisSpell, ";If set to true it will automatically add the telekinesis spell to player if they don't have it.");
 		ini.SetLongValue("BetterTelekinesisConfig", "TelekinesisLabelMode", TelekinesisLabelMode, ";Change how the label works when telekinesis is equipped. Due to the way the label works this option only does anything if you also enabled OverwriteTargetPicker. If you don't know what I mean, it's the thing where if you have telekinesis spell equipped (not necessarily hands out) it shows distant objects labels without the E - Activate part. That's to help you show what you are aiming at with telekinesis. So here's some choices on how that works: 0 = don't change anything, leave vanilla, objects exactly below your crosshair will show label 1 = show nearest object's label, this is the first object that would fly to you if you cast telekinesis now 2 = disable telekinesis label completely, don't show the thing");
-		ini.SetBoolValue("BetterTelekinesisConfig", "FixDragonsNotBeingTelekinesisable", FixDragonsNotBeingTelekinesisable, ";WARNING: Don't enable, because once the ragdoll of dragon ends it loses all collision and gets stuck instead of getting up!");
 		ini.SetBoolValue("BetterTelekinesisConfig", "FixGrabActorHoldHostility", FixGrabActorHoldHostility, ";Make it so that when you grab actor it's immediately considered a hostile action.");
 		ini.SetBoolValue("BetterTelekinesisConfig", "DontDeactivateHavokHoldSpring", DontDeactivateHavokHoldSpring, ";If camera is completely steady the hold object spring will be deactivated, this will not look good when you're holding objects that want to make small movements or rotations.");
 		ini.SetDoubleValue("BetterTelekinesisConfig", "MultiObjectHoverAmount", MultiObjectHoverAmount, ";When enabling multi object telekinesis the objects will hover around a bit to make it look cooler. This is the amount of distance they can hover from origin.");
@@ -228,7 +226,7 @@ namespace BetterTelekinesis
 		ini.SetValue("BetterTelekinesisConfig", "Blast_SwordModel", Blast_SwordModel.c_str(), ";Make the blast spell use these nifs as models. Separate with ;");
 
 		// Debug
-		ini.SetBoolValue("Debug", "Debug-Log-Enable", DebugLogMode, ";Enable additional debug logging.");
+		ini.SetBoolValue("Debug", "DebugLogMode", DebugLogMode, ";Enable additional debug logging.");
 
 		ini.SaveFile(iniPath.data());
 
