@@ -1,18 +1,15 @@
 #pragma once
 
 #include "BetterTelekinesis/Config.h"
-#include "BetterTelekinesis/Logging.h"
 #include "BetterTelekinesis/RaycastHelper.h"
 #include "CasualLibrary.hpp"
-
-#include "Shared/Utility/Assembly.h"
-#include "Shared/Utility/Memory.h"
 #include "Stopwatch.hpp"
 
 namespace BetterTelekinesis
 {
 	static std::mutex locker_picked;
-	static std::recursive_mutex CachedHandlesLocker;
+	static std::shared_mutex CachedHandlesLocker;
+	static inline bool LockerLocked = false;
 	static std::mutex SwordPositionLocker;
 	static std::mutex updateLocker;
 	static std::recursive_mutex grabindex_locker;
@@ -33,13 +30,13 @@ namespace BetterTelekinesis
 		std::vector<float> Goto;
 		unsigned char WaitEffectCounter = 0;
 
-		bool IsFreeForSummon(double now) const;
+		[[nodiscard]] bool IsFreeForSummon(double now) const;
 
-		bool IsWaitingEffect(double now) const;
+		[[nodiscard]] bool IsWaitingEffect(double now) const;
 
-		bool CanPlayFadeout(double now) const;
+		[[nodiscard]] bool CanPlayFadeout(double now) const;
 
-		bool IsWaitingInvis() const;
+		[[nodiscard]] bool IsWaitingInvis() const;
 
 		static double getLifetime();
 	};
@@ -67,7 +64,6 @@ namespace BetterTelekinesis
 
 	class random_move_generator final
 	{
-	private:
 		float current_x = 0;
 		float current_y = 0;
 		float target_x = 0;
@@ -82,9 +78,9 @@ namespace BetterTelekinesis
 		static float getExtentMult();
 
 	public:
-		float getCurrentX() const;
+		[[nodiscard]] float getCurrentX() const;
 
-		float getCurrentY() const;
+		[[nodiscard]] float getCurrentY() const;
 
 		void update(float diff);
 
@@ -119,7 +115,7 @@ namespace BetterTelekinesis
 		{
 			struct LimitTelekinesisSound1
 			{
-				static void thunk(RE::Actor* actor, intptr_t a_arg, uint32_t b_arg, intptr_t c_arg, int d_arg)
+				static void thunk(uintptr_t a_arg, intptr_t b_arg, uint32_t c_arg, intptr_t d_arg, int e_arg)
 				{
 					if (Config::TelekinesisMaxObjects > 1 || !Config::TelekinesisGrabObjectSound) {
 						// Probably don't need the grab object timer check here since it's spaced out anyway, but..
@@ -133,14 +129,14 @@ namespace BetterTelekinesis
 
 						_last_tk_sound2 = now;
 					}
-					func(actor, a_arg, b_arg, c_arg, d_arg);
+					func(a_arg, b_arg, c_arg, d_arg, e_arg);
 				}
 				static inline REL::Relocation<decltype(thunk)> func;
 			};
 
 			struct LimitTelekinesisSound2
 			{
-				static void thunk(RE::Actor* actor, intptr_t a_arg, uint32_t b_arg, intptr_t c_arg, int d_arg)
+				static void thunk(uintptr_t a_arg, intptr_t b_arg, uint32_t c_arg, intptr_t d_arg, int e_arg)
 				{
 					if (Config::TelekinesisMaxObjects > 1 || !Config::TelekinesisLaunchObjectSound) {
 						// Don't play telekinesis launch sound if we just played it, otherwise it ends up being played 10 times and becomes super loud.
@@ -153,7 +149,7 @@ namespace BetterTelekinesis
 						}
 						_last_tk_sound = now;
 					}
-					func(actor, a_arg, b_arg, c_arg, d_arg);
+					func(a_arg, b_arg, c_arg, d_arg, e_arg);
 				}
 				static inline REL::Relocation<decltype(thunk)> func;
 			};
@@ -198,8 +194,7 @@ namespace BetterTelekinesis
 						}
 
 						if (drop_timer.has_value()) {
-							int now = GetTickCount();
-							if (now - drop_timer.value() < 200) {
+							if (GetTickCount() - drop_timer.value() < 200) {
 								if (Config::LaunchIsHotkeyInstead) {
 									func(a_arg, a_effect);
 								}
@@ -242,8 +237,7 @@ namespace BetterTelekinesis
 						}
 
 						if (drop_timer.has_value()) {
-							int now = GetTickCount();
-							if (now - drop_timer.value() < 200) {
+							if (GetTickCount() - drop_timer.value() < 200) {
 								if (Config::LaunchIsHotkeyInstead) {
 									func(a_effect, a_arg);
 								}
@@ -276,8 +270,7 @@ namespace BetterTelekinesis
 				{
 					if (Config::DontLaunchIfRunningOutOfMagicka || Config::LaunchIsHotkeyInstead || Config::ThrowActorDamage > 0.0f) {
 						if (drop_timer.has_value()) {
-							int now = GetTickCount();
-							if (now - drop_timer.value() < 200) {
+							if (GetTickCount() - drop_timer.value() < 200) {
 								if (!Config::LaunchIsHotkeyInstead) {
 									func(a_arg, actor, b_arg, c_arg, a_float);
 									return;
@@ -338,7 +331,7 @@ namespace BetterTelekinesis
 									_total_telek_time += _profile_timer->elapsed<>() - bgt;
 
 									if (_times_telek_time++ % 10 == 1) {
-										logger::debug(fmt::runtime("profiler: {.2f} <- {} ; {f}"), static_cast<double>(_total_telek_time / 1000) / static_cast<double>(_times_telek_time), _times_telek_time, RE::PlayerCharacter::GetSingleton()->GetPlayerRuntimeData().telekinesisDistance);
+										logger::debug(fmt::runtime("profiler: {.2f} <- {} ; {f}"), static_cast<double>(_total_telek_time) / 100 / static_cast<double>(_times_telek_time), _times_telek_time, RE::PlayerCharacter::GetSingleton()->GetPlayerRuntimeData().telekinesisDistance);
 									}
 								}
 							}
@@ -373,6 +366,8 @@ namespace BetterTelekinesis
 
 						case 2:
 							chosenTelekinesis = 0;
+							break;
+						default: 
 							break;
 						}
 					}
@@ -534,7 +529,6 @@ namespace BetterTelekinesis
 					}
 
 					int indexOfMe = -1;
-					size_t hadCount = 0;
 					float extraX = 0.0f;
 					float extraY = 0.0f;
 
@@ -543,12 +537,11 @@ namespace BetterTelekinesis
 						if (saved_grabindex.contains(pt)) {
 							auto& g = saved_grabindex.at(pt);
 							indexOfMe = g->index_of_obj;
-							if (g->rng.has_value()) {
+							if (g->rng) {
 								extraX = g->rng->getCurrentX();
 								extraY = g->rng->getCurrentY();
 							}
 						}
-						hadCount = saved_grabindex.size();
 					}
 
 					if (indexOfMe < 0 || indexOfMe >= 100) {
@@ -562,14 +555,6 @@ namespace BetterTelekinesis
 					if (stepX == 0 && stepY == 0 && extraX == 0.0f && extraY == 0.0f) {
 						return;
 					}
-
-					// Formula method isn't good because it's too jarringly noticable when it changes.
-					/*if (hadCount < 2)
-				    hadCount = 1;
-				else
-				    hadCount--;
-	
-				double stepAmt = 5.0 + Math.Max(-3.0, (1.0 - hadCount / 10.0) * 10.0);*/
 
 					double stepAmt = Config::TelekinesisObjectSpread;
 					double rotX = stepX * stepAmt;
@@ -586,13 +571,13 @@ namespace BetterTelekinesis
 					//auto normal = Memory::Internal::read<RE::NiPoint3>(normalPtr);
 					auto& normal = a_direction;
 
-					auto targetPos = RE::NiPoint3();
+					RE::NiPoint3 targetPos;
 					targetPos.x = position.x + normal.x;
 					targetPos.y = position.y + normal.y;
 					targetPos.z = position.z + normal.z;
 
-					auto transform = RE::NiTransform();
-					auto tpos = RE::NiPoint3();
+					RE::NiTransform transform;
+					RE::NiPoint3 tpos;
 					tpos.x = position.x;
 					tpos.y = position.y;
 					tpos.z = position.z;
@@ -634,7 +619,6 @@ namespace BetterTelekinesis
 			{
 				stl::write_thunk_call<LimitTelekinesisSound1>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0xE1C - 0xDC0, 0x51));
 				stl::write_thunk_call<LimitTelekinesisSound2>(RELOCATION_ID(34250, 35052).address() + REL::Relocate(0x4C4 - 0x250, 0x243));
-
 				stl::write_thunk_call<FixGrabActorHoldHostility>(RELOCATION_ID(33564, 34333).address() + REL::Relocate(0xC7C - 0xB40, 0x135));
 				if (REL::Module::get().IsAE()) {
 					stl::write_thunk_call<TelekinesisLaunchAE>(RELOCATION_ID(34256, 35048).address() + REL::Relocate(0x1C, 0x58));
@@ -654,7 +638,6 @@ namespace BetterTelekinesis
 					REL::safe_fill(addr, 0x90, 0xC);
 					// Player update func, clears grabbed objects in some cases.
 					stl::write_thunk_call<PlayerUpdateClear>(RELOCATION_ID(39375, 40447).address() + REL::Relocate(0x522, 0xA73));
-
 					stl::write_thunk_call<PlayerRevertClear>(RELOCATION_ID(39466, 40543).address() + REL::Relocate(0x9837 - 0x9620, 0x3C6));
 					stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0));
 
@@ -689,7 +672,7 @@ namespace BetterTelekinesis
 			bool IsActor = false;
 			float Elapsed = 0;
 
-			int __update_counter = 0;
+			int UpdateCounter = 0;
 		};
 
 		static inline std::unordered_map<RE::RefHandle, std::shared_ptr<held_obj_data>> CachedHeldHandles;
@@ -730,9 +713,9 @@ namespace BetterTelekinesis
 
 		static std::vector<RE::ActiveEffect*> GetCurrentRelevantActiveEffects();
 
-		static inline uint32_t _last_updated_telek = 0;
-		static inline bool _next_update_telek = false;
-		static inline bool _last_weap_out = false;
+		inline static uint32_t _last_updated_telek = 0;
+		inline static  bool _next_update_telek = false;
+		inline static bool _last_weap_out = false;
 
 		static inline uintptr_t _total_telek_time = 0;
 		static inline uintptr_t _times_telek_time = 0;
@@ -789,9 +772,9 @@ namespace BetterTelekinesis
 		};
 
 	public:
-		inline static std::vector<spell_info*> spellInfos = std::vector<spell_info*>((int)spell_types::max);
+		inline static auto spellInfos = std::vector<spell_info*>(static_cast<int>(spell_types::max));
 
-		static std::vector<RE::TESEffectShader*> EffectInfos;
+		inline static std::vector<RE::TESEffectShader*> EffectInfos;
 
 		//private:
 		inline static std::vector<RE::RefHandle> telekinesis_picked;
@@ -803,7 +786,7 @@ namespace BetterTelekinesis
 		inline static bool debug_pick = false;
 
 		inline static std::unique_ptr<stopwatch::Stopwatch> _profile_timer;
-		inline static std::vector<uint64_t> _profile_times = std::vector<uint64_t>(32);
+		inline static auto _profile_times = std::vector<uint64_t>(32);
 		inline static uint64_t _profile_last = 0;
 		inline static uint32_t _profile_index = 0;
 		inline static uint64_t _profile_counter = 0;
@@ -892,12 +875,12 @@ namespace BetterTelekinesis
 			float wgt = 0;
 			REX::EnumSet<RE::PlayerCharacter::GrabbingType, std::uint32_t> grabtype = RE::PlayerCharacter::GrabbingType::kNone;
 			int index_of_obj = 0;
-			std::optional<random_move_generator> rng;
+			std::unique_ptr<random_move_generator> rng;
 			char spring[0x30] = {};
 			char spring_alloc[0x30] = {};
 		};
 
-		inline static std::unordered_map<uintptr_t, std::shared_ptr<saved_grab_index>> saved_grabindex = std::unordered_map<uintptr_t, std::shared_ptr<saved_grab_index>>();
+		inline static auto saved_grabindex = std::unordered_map<uintptr_t, std::shared_ptr<saved_grab_index>>();
 
 		inline static bool casting_sword_barrage = false;
 		inline static int _placement_barrage = 0;
@@ -966,7 +949,7 @@ namespace BetterTelekinesis
 
 		static void OnFailPickTelekinesisTarget(RE::EffectSetting* efs, bool failBecauseAlreadyMax);
 
-		static OurSpellTypes IsOurSpell(RE::EffectSetting* ef);
+		static OurSpellTypes IsOurSpell(const RE::EffectSetting* ef);
 
 		static OurItemTypes IsOurItem(const RE::TESForm* baseForm);
 

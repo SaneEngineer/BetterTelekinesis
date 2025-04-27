@@ -13,6 +13,7 @@
 #include <math.h>
 
 #include <ranges>
+#include <shared_mutex>
 
 #include <typeinfo>
 
