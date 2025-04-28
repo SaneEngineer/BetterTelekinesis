@@ -2009,19 +2009,16 @@ namespace BetterTelekinesis
 		trampoline.write_branch<5>(addr, trampoline.allocate(patch4));
 
 		Memory::Internal::write<uint8_t>(addr + 5, 0xC3, true);
-
-		addr = RELOCATION_ID(34260, 35047).address();
+		
+		addr = RELOCATION_ID(34260, 35047).address() + REL::Relocate(0x11, 0x12);
 		struct Patch5 : Xbyak::CodeGenerator
 		{
-			Patch5(std::uintptr_t a_func, std::uintptr_t a_target, Xbyak::Reg64 a_thirdStackReg, std::uintptr_t a_rspOffset)
+			Patch5(std::uintptr_t a_func, std::uintptr_t a_target, std::uintptr_t a_rspOffset)
 			{
 				Xbyak::Label retnLabel;
 				Xbyak::Label funcLabel;
 
-				push(a_thirdStackReg);
-				push(rsi);
-				push(rdi);
-				sub(rsp, a_rspOffset);
+				mov(ptr[rsp + a_rspOffset], rbx);
 
 				mov(rsi, rcx);
 				movaps(xmm7, xmm1);
@@ -2039,15 +2036,14 @@ namespace BetterTelekinesis
 				dq(a_func);
 
 				L(retnLabel);
-				dq(a_target + 0x8);
+				dq(a_target + 0x5);
 			}
 		};
-		Patch5 patch5(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper5), addr, Reg64(REL::Relocate(Reg64::RBP, Reg64::R14)), REL::Relocate(0x50, 0x40));
+		Patch5 patch5(reinterpret_cast<uintptr_t>(TelekinesisApplyHelper5), addr, REL::Relocate(0x70, 0x60));
 		patch5.ready();
 
 		trampoline.write_branch<5>(addr, trampoline.allocate(patch5));
 
-		
 		addr = RELOCATION_ID(34260, 35047).address() + REL::Relocate(0x70B3 - 0x6E40, 0x305);
 		struct Patch6 : Xbyak::CodeGenerator
 		{
@@ -2332,7 +2328,7 @@ namespace BetterTelekinesis
 				g = saved_grabindex.find(addr)->second;
 
 				if (diff > 0.0f && g->rng) {
-					//g->rng->update(diff);
+					g->rng->update(diff);
 				}
 			}
 			
