@@ -311,7 +311,7 @@ namespace BetterTelekinesis
 		spellInfos[static_cast<int>(spell_types::reach)] = new spell_info(spell_types::reach);
 		spellInfos[static_cast<int>(spell_types::reach)]->Load(Config::SpellInfo_Reach, "SpellInfo_Reach");
 		spellInfos[static_cast<int>(spell_types::normal)] = new spell_info(spell_types::normal);
-		spellInfos[static_cast<int>(spell_types::normal)]->Load(";;", "SpellInfo_Normal");
+		spellInfos[static_cast<int>(spell_types::normal)]->Load(Config::SpellInfo_Normal, "SpellInfo_Normal");
 		spellInfos[static_cast<int>(spell_types::single)] = new spell_info(spell_types::single);
 		spellInfos[static_cast<int>(spell_types::single)]->Load(Config::SpellInfo_One, "SpellInfo_One");
 		spellInfos[static_cast<int>(spell_types::enemy)] = new spell_info(spell_types::enemy);
@@ -1724,7 +1724,11 @@ namespace BetterTelekinesis
 
 	static bool TelekinesisApplyHelper8(RE::ActiveEffect* ef)
 	{
-		if (ef != nullptr && BetterTelekinesisPlugin::IsOurSpell(ef->GetBaseObject()) != BetterTelekinesisPlugin::OurSpellTypes::TelekOne) {
+		if (ef == nullptr)
+			return false;
+
+		auto SpellType = BetterTelekinesisPlugin::IsOurSpell(ef->GetBaseObject());
+		if (SpellType != BetterTelekinesisPlugin::OurSpellTypes::TelekOne && SpellType != BetterTelekinesisPlugin::OurSpellTypes::None) {
 			if (Config::TelekinesisMaxObjects < 99) {
 				if (BetterTelekinesisPlugin::GetCurrentTelekinesisObjectCount() >= Config::TelekinesisMaxObjects) {
 					return false;
@@ -2080,7 +2084,7 @@ namespace BetterTelekinesis
 		} else {
 			trampoline.write_branch<6>(addr, trampoline.allocate(patch6));
 		}
-		
+
 		// Allow more than one instance of the telekinesis active effect.
 		if (addr = RELOCATION_ID(33781, 34577).address() + REL::Relocate(0xA29 - 0xA20, 0x9); REL::make_pattern<"48 39 42 48">().match(addr)) {
 			//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 0, ReplaceLength = 6, Before = [&](std::any ctx) {
@@ -2109,6 +2113,8 @@ namespace BetterTelekinesis
 
 					L(IfNull);
 					pop(rcx);
+					pop(rdx);
+
 					jmp(ptr[rip + retnLabel]);
 
 					L(funcLabel);
@@ -2125,7 +2131,7 @@ namespace BetterTelekinesis
 		} else {
 			stl::report_and_fail("Failed to patch Allow multiple Telekinesis effects");
 		}
-		
+
 		// Allow more than one instance of the telekinesis effect (both places must be edited).
 		addr = RELOCATION_ID(33785, 34581).address() + REL::Relocate(0xB80 - 0xB70, 0x10);
 		struct Patch8 : Xbyak::CodeGenerator
@@ -2174,7 +2180,7 @@ namespace BetterTelekinesis
 		patch8.ready();
 
 		trampoline.write_branch<6>(addr, trampoline.allocate(patch8));
-
+		
 		// Fix telekinesis gaining skill for each instance of the effect.
 		addr = RELOCATION_ID(33321, 34100).address() + REL::Relocate(0x2D, 0x6A);
 		struct Patch9 : Xbyak::CodeGenerator
