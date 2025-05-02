@@ -140,9 +140,9 @@ namespace BetterTelekinesis
 						continue;
 					}
 
-					auto objHolder = RE::TESObjectREFR::LookupByHandle(snd->ObjectHandleId);
-					if (objHolder) {
-						auto ptr = objHolder.get();
+					auto objHolder = RE::TESObjectREFR::LookupByHandle(snd->ObjectHandleId).get();
+					if (objHolder != nullptr) {
+						auto ptr = objHolder;
 						if (frame % 2 == 0) {
 							update_held_object(ptr, snd, ef);
 							frame = 0;
@@ -291,8 +291,8 @@ namespace BetterTelekinesis
 					return;
 				}
 				{
-					auto obj = RE::TESObjectREFR::LookupByHandle(dat->ObjectHandleId);
-					if (obj->IsHandleValid()) {
+					auto obj = RE::TESObjectREFR::LookupByHandle(dat->ObjectHandleId).get();
+					if (obj != nullptr) {
 						auto actor = obj->As<RE::Actor>();
 						if (actor != nullptr) {
 							float dam = CalculateCurrentTelekinesisDamage(plr, actor) * diff * static_cast<float>(Config::HoldActorDamage);
@@ -1263,8 +1263,8 @@ namespace BetterTelekinesis
 
 		ForeachHeldHandle([&](const std::shared_ptr<held_obj_data>& dat) {
 			{
-				auto objHold = RE::TESObjectREFR::LookupByHandle(dat->ObjectHandleId);
-				if (objHold->IsHandleValid()) {
+				auto objHold = RE::TESObjectREFR::LookupByHandle(dat->ObjectHandleId).get();
+				if (objHold != nullptr) {
 					auto rootObj = objHold->Get3D();
 					if (rootObj != nullptr) {
 						plrNodes.push_back(rootObj);
@@ -1425,8 +1425,8 @@ namespace BetterTelekinesis
 				continue;
 			}
 
-			auto objRefHold = RE::TESObjectREFR::LookupByHandle(odata->obj->GetHandle().native_handle());
-			if (objRefHold->IsHandleValid()) {
+			auto objRefHold = RE::TESObjectREFR::LookupByHandle(odata->obj->GetHandle().native_handle()).get();
+			if (objRefHold != nullptr) {
 				if (isActor) {
 					grabactor_picked.push_back(objRefHold->GetHandle().native_handle());
 					if (Config::DebugLogMode && debug_pick) {
@@ -2693,13 +2693,13 @@ namespace BetterTelekinesis
 
 			for (int i = 0; i < dat->swords.size(); i++) {
 				auto& sw = dat->swords[i];
-				auto objRef = RE::TESObjectREFR::LookupByHandle(sw->Handle);
+				auto objRef = RE::TESObjectREFR::LookupByHandle(sw->Handle).get();
 
 				bool isForced = dat->forced_grab != nullptr && dat->forced_grab->Handle == sw->Handle;
 				if (sw->WaitingEffect != 0) {
 					bool waitMore = false;
 					if (sw->IsWaitingEffect(now)) {
-						if (objRef->IsHandleValid()) {
+						if (objRef != nullptr) {
 							auto root = objRef->Get3D();
 							if (root == nullptr) {
 								waitMore = true;
@@ -2711,9 +2711,9 @@ namespace BetterTelekinesis
 									}
 
 									if (sw->WaitingEffect == 2) {
-										PlaySwordEffect(objRef.get(), true);
+										PlaySwordEffect(objRef, true);
 									} else if (sw->WaitingEffect == 1) {
-										PlaySwordEffect(objRef.get(), false);
+										PlaySwordEffect(objRef, false);
 									}
 
 									root->local.translate.z -= first_TeleportZOffset;
@@ -2752,9 +2752,9 @@ namespace BetterTelekinesis
 						sw->FadedOut = true;
 						sw->FadingOut = false;
 
-						objRef = RE::TESObjectREFR::LookupByHandle(sw->Handle);
+						objRef = RE::TESObjectREFR::LookupByHandle(sw->Handle).get();
 						if (objRef->IsHandleValid()) {
-							auto obj = objRef.get();
+							auto obj = objRef;
 							ReturnSwordToPlace(obj);
 						}
 					}
@@ -2762,9 +2762,9 @@ namespace BetterTelekinesis
 					sw->FadingOut = true;
 					sw->FadeTime = now;
 
-					objRef = RE::TESObjectREFR::LookupByHandle(sw->Handle);
+					objRef = RE::TESObjectREFR::LookupByHandle(sw->Handle).get();
 					if (objRef->IsHandleValid()) {
-						auto obj = objRef.get();
+						auto obj = objRef;
 						StopSwordEffect(obj, z == 1);
 					}
 				}
@@ -2851,8 +2851,8 @@ namespace BetterTelekinesis
 			return;
 		}
 
-		auto objRef = RE::TESObjectREFR::LookupByHandle(chosen);
-		if (!objRef->IsHandleValid()) {
+		auto objRef = RE::TESObjectREFR::LookupByHandle(chosen).get();
+		if (objRef == nullptr) {
 			return;
 		}
 
@@ -2873,7 +2873,7 @@ namespace BetterTelekinesis
 		sword_data::Temp2.z += first_TeleportZOffset;
 
 		REL::Relocation<void (*)(RE::TESObjectREFR*, RE::ObjectRefHandle&, RE::TESObjectCELL*, RE::TESWorldSpace*, const RE::NiPoint3&, const RE::NiPoint3&)> moveTo{ RELOCATION_ID(56227, 56626) };
-		moveTo(objRef.get(), plrHold, cell, ws, sword_data::Temp2, sword_data::Temp3);
+		moveTo(objRef, plrHold, cell, ws, sword_data::Temp2, sword_data::Temp3);
 
 		if (inst != nullptr) {
 			inst->WaitingEffect = static_cast<unsigned char>(ghost ? 2 : 1);
@@ -2915,8 +2915,8 @@ namespace BetterTelekinesis
 			std::scoped_lock lock(SwordPositionLocker);
 			for (const auto& key : CachedHeldHandles | std::views::keys) {
 				{
-					auto objRef = RE::TESObjectREFR::LookupByHandle(key);
-					if (objRef->IsHandleValid()) {
+					auto objRef = RE::TESObjectREFR::LookupByHandle(key).get();
+					if (objRef != nullptr) {
 						auto onode = objRef->Get3D();
 						if (onode != nullptr) {
 							ignore_ls.push_back(onode->AsNode());
@@ -3243,8 +3243,8 @@ namespace BetterTelekinesis
 			return;
 		}
 
-		auto objRef = RE::TESObjectREFR::LookupByHandle(obj->GetHandle().native_handle());
-		if (objRef->IsHandleValid()) {
+		auto objRef = RE::TESObjectREFR::LookupByHandle(obj->GetHandle().native_handle()).get();
+		if (objRef != nullptr) {
 			auto sw = std::make_shared<sword_instance>();
 			sw->Handle = objRef->GetHandle().native_handle();
 			swords.push_back(sw);

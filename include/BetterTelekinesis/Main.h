@@ -351,8 +351,8 @@ namespace BetterTelekinesis
 							if (!telekinesis_picked.empty()) {
 								chosenTelekinesis = telekinesis_picked[0];
 
-								auto objRef = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis);
-								if (!objRef->IsHandleValid() || IsOurItem(objRef->GetBaseObject()) != OurItemTypes::None) {
+								auto objRef = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis).get();
+								if (objRef == nullptr || IsOurItem(objRef->GetBaseObject()) != OurItemTypes::None) {
 									chosenTelekinesis = 0;
 								}
 
@@ -436,8 +436,8 @@ namespace BetterTelekinesis
 							logger::debug("Didn't pick any target");
 						} else {
 							{
-								auto objHandler = RE::TESObjectREFR::LookupByHandle(handleId);
-								if (!objHandler->IsHandleValid()) {
+								auto objHandler = RE::TESObjectREFR::LookupByHandle(handleId).get();
+								if (objHandler == nullptr) {
 									logger::debug("Picked invalid handle");
 								} else {
 									logger::debug(fmt::runtime("Picked " + std::string(objHandler->GetName())));
@@ -448,9 +448,9 @@ namespace BetterTelekinesis
 
 					if (handleId != 0) {
 						{
-							auto objRefHold = RE::TESObjectREFR::LookupByHandle(handleId);
+							auto objRefHold = RE::TESObjectREFR::LookupByHandle(handleId).get();
 							std::vector effects{ efs };
-							if (!objRefHold->IsHandleValid() || !CanPickTelekinesisTarget(objRefHold.get(), effects)) {
+							if (objRefHold == nullptr || !CanPickTelekinesisTarget(objRefHold, effects)) {
 								handleId = 0;
 							}
 						}
@@ -462,8 +462,8 @@ namespace BetterTelekinesis
 					if (!failBecauseMax && casting_normal && Config::TelekinesisDisarmsEnemies) {
 						if (actorHandle != 0) {
 							{
-								auto objRef = RE::TESObjectREFR::LookupByHandle(actorHandle);
-								if (objRef->IsHandleValid()) {
+								auto objRef = RE::TESObjectREFR::LookupByHandle(actorHandle).get();
+								if (objRef != nullptr) {
 									auto ac = objRef->As<RE::Actor>();
 									if (ac != nullptr) {
 										DisarmActor(ac);

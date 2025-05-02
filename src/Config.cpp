@@ -131,7 +131,7 @@ namespace BetterTelekinesis
 				ReadDoubleSetting(ini, "BetterTelekinesisConfig", "MagicSwordBlast_PlaceDistance", MagicSwordBlast_PlaceDistance);
 				ReadDoubleSetting(ini, "BetterTelekinesisConfig", "MagicSwordBarrage_PlaceDistance", MagicSwordBarrage_PlaceDistance);
 				ReadDoubleSetting(ini, "BetterTelekinesisConfig", "SwordBarrage_FireDelay", SwordBarrage_FireDelay);
-				ReadDoubleSetting(ini, "BetterTelekinesisConfig", "ObjectPullSpeedMax", SwordBarrage_SpawnDelay);
+				ReadDoubleSetting(ini, "BetterTelekinesisConfig", "SwordBarrage_SpawnDelay", SwordBarrage_SpawnDelay);
 				ReadStringSetting(ini, "BetterTelekinesisConfig", "SwordReturn_Marker", SwordReturn_Marker);
 				ReadBoolSetting(ini, "BetterTelekinesisConfig", "AlwaysLaunchObjectsEvenWhenNotFinishedPulling", AlwaysLaunchObjectsEvenWhenNotFinishedPulling);
 				ReadStringSetting(ini, "BetterTelekinesisConfig", "Barrage_SwordModel", Barrage_SwordModel);
@@ -219,7 +219,7 @@ namespace BetterTelekinesis
 		ini.SetDoubleValue("BetterTelekinesisConfig", "MagicSwordBlast_PlaceDistance", MagicSwordBlast_PlaceDistance, ";How far ahead magic sword to put.");
 		ini.SetDoubleValue("BetterTelekinesisConfig", "MagicSwordBarrage_PlaceDistance", MagicSwordBarrage_PlaceDistance, ";How far ahead magic sword to put.");
 		ini.SetDoubleValue("BetterTelekinesisConfig", "SwordBarrage_FireDelay", SwordBarrage_FireDelay, ";Delay in seconds before barrage will fire the sword after grabbing it.");
-		ini.SetDoubleValue("BetterTelekinesisConfig", "ObjectPullSpeedMax", SwordBarrage_SpawnDelay, ";Delay in seconds before barrage will spawn the next sword.");
+		ini.SetDoubleValue("BetterTelekinesisConfig", "SwordBarrage_SpawnDelay", SwordBarrage_SpawnDelay, ";Delay in seconds before barrage will spawn the next sword.");
 		//ini.SetValue("BetterTelekinesisConfig", "SwordReturn_Marker", SwordReturn_Marker.c_str());
 		ini.SetBoolValue("BetterTelekinesisConfig", "AlwaysLaunchObjectsEvenWhenNotFinishedPulling", AlwaysLaunchObjectsEvenWhenNotFinishedPulling, ";There's a mechanic where if you pull object to you with telekinesis but release the spell before the object is finished being pulled to you it gets dropped instead of launched. Here you can overwrite the behavior and force it to always to be launched even when not finished pulling yet.");
 		ini.SetValue("BetterTelekinesisConfig", "Barrage_SwordModel", Barrage_SwordModel.c_str(), ";Make the barrage spell use these nifs as models. Separate with ;");

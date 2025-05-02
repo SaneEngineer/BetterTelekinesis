@@ -39,7 +39,7 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_CXX_FLAGS_RELEASE": "/EHsc /GR- /Qpar",
+        "CMAKE_CXX_FLAGS_RELEASE": "/EHsc /GR- /Qpar /DNDEBUG",
         "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "/CGTHREADS:8 /OPT:ICF=4 /DEBUG"
       }
     },
