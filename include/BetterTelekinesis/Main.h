@@ -168,8 +168,8 @@ namespace BetterTelekinesis
 
 						REL::Relocation<int (*)(RE::Actor*)> GetAgression{ RELOCATION_ID(36663, 37671) };
 						int aggression = GetAgression(victim);
-						auto r8 = 0;  //Memory::ReadPointer(ctx::SI + 0x48); Not Used
-						REL::Relocation<void (*)(RE::Actor*, RE::Actor*, uintptr_t, int)> OnAttacked{ RELOCATION_ID(37672, 38626) };
+						auto r8 = 0;                                                                                                  //Memory::ReadPointer(ctx::SI + 0x48); Not Used
+						REL::Relocation<void (*)(RE::Actor*, RE::Actor*, uintptr_t, int)> OnAttacked{ RELOCATION_ID(37672, 38626) };  //VR verified
 						OnAttacked(victim, dynamic_cast<RE::Actor*>(plr), r8, aggression);
 					}
 					func(a_arg, actor, b_arg, c_arg);
@@ -266,19 +266,19 @@ namespace BetterTelekinesis
 
 			struct GrabActorLaunch
 			{
-				static void thunk(uintptr_t a_arg, RE::Actor* actor, uintptr_t b_arg, uintptr_t c_arg, float a_float)
+				static void thunk(uintptr_t a_arg, RE::Actor* actor, float* b_arg, float a_float)
 				{
 					if (Config::DontLaunchIfRunningOutOfMagicka || Config::LaunchIsHotkeyInstead || Config::ThrowActorDamage > 0.0f) {
 						if (drop_timer.has_value()) {
 							if (GetTickCount() - drop_timer.value() < 200) {
 								if (!Config::LaunchIsHotkeyInstead) {
-									func(a_arg, actor, b_arg, c_arg, a_float);
+									func(a_arg, actor, b_arg, a_float);
 									return;
 								}
 
 								OnLaunchActor(actor);
 
-								func(a_arg, actor, b_arg, c_arg, a_float);
+								func(a_arg, actor, b_arg, a_float);
 								return;
 							}
 
@@ -298,7 +298,7 @@ namespace BetterTelekinesis
 
 						OnLaunchActor(actor);
 					}
-					func(a_arg, actor, b_arg, c_arg, a_float);
+					func(a_arg, actor, b_arg, a_float);
 				}
 				static inline REL::Relocation<decltype(thunk)> func;
 			};
@@ -309,7 +309,93 @@ namespace BetterTelekinesis
 				{
 					func(a_arg, hkWorld, sourcePoint, sourceRotation);
 
-					RE::RefHandle origTelekinesis = a_arg->grabPickRef.native_handle();
+					auto origTelekinesis = Memory::Internal::read<RE::ObjectRefHandle>(a_arg->grabPickRef + 0xC).native_handle();
+
+					RE::RefHandle chosenTelekinesis = origTelekinesis;
+					{
+						std::scoped_lock lock(locker_picked);
+						if (ShouldUpdateTelekinesis(GetTickCount())) {
+							telekinesis_picked.clear();
+							grabactor_picked.clear();
+							uintptr_t bgt = 0;
+
+							if (Config::DebugLogMode) {
+								if (_profile_timer != nullptr) {
+									bgt = _profile_timer->elapsed<>();
+								}
+							}
+
+							OverwriteTelekinesisTargetPick();
+
+							if (Config::DebugLogMode) {
+								if (_profile_timer != nullptr) {
+									_total_telek_time += _profile_timer->elapsed<>() - bgt;
+
+									if (_times_telek_time++ % 10 == 1) {
+										float telekDistance;
+										if (!REL::Module::IsVR()) {
+											telekDistance = RE::PlayerCharacter::GetSingleton()->GetPlayerRuntimeData().telekinesisDistance;
+										} else {
+											telekDistance = RE::PlayerCharacter::GetSingleton()->GetVRPlayerRuntimeData().telekinesisDistance;
+										}
+										logger::debug(fmt::runtime("profiler: {.2f} <- {} ; {f}"), static_cast<double>(_total_telek_time) / 100 / static_cast<double>(_times_telek_time), _times_telek_time, telekDistance);
+									}
+								}
+							}
+						}
+
+						switch (Config::TelekinesisLabelMode) {
+						case 0:
+							if (chosenTelekinesis != 0 && std::ranges::find(telekinesis_picked.begin(), telekinesis_picked.end(), chosenTelekinesis) == telekinesis_picked.end()) {
+								chosenTelekinesis = 0;
+							}
+							if (chosenTelekinesis != 0 && !HasAnyNormalTelekInHand()) {
+								chosenTelekinesis = 0;
+							}
+							break;
+
+						case 1:
+							if (!telekinesis_picked.empty()) {
+								chosenTelekinesis = telekinesis_picked[0];
+
+								auto objRef = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis).get();
+								if (objRef == nullptr || IsOurItem(objRef->GetBaseObject()) != OurItemTypes::None) {
+									chosenTelekinesis = 0;
+								}
+
+								if (chosenTelekinesis != 0 && !HasAnyNormalTelekInHand()) {
+									chosenTelekinesis = 0;
+								}
+							} else {
+								chosenTelekinesis = 0;
+							}
+							break;
+
+						case 2:
+							chosenTelekinesis = 0;
+							break;
+						default:
+							break;
+						}
+					}
+
+					if (origTelekinesis != chosenTelekinesis) {
+						Memory::Internal::write(reinterpret_cast<uintptr_t>(a_arg) + 0xC, RE::TESObjectREFR::LookupByHandle(chosenTelekinesis).get());
+					}
+				}
+				static inline REL::Relocation<decltype(thunk)> func;
+			};
+
+			struct ApplyOverwriteTargetPickVR
+			{
+				static void thunk(RE::CrosshairPickData* a_arg, RE::bhkWorld* hkWorld, RE::NiPoint3* sourcePoint, RE::NiPoint3* sourceRotation, int b_arg)
+				{
+					func(a_arg, hkWorld, sourcePoint, sourceRotation, b_arg);
+
+					auto player = RE::PlayerCharacter::GetSingleton();
+					auto hand = player->GetVRPlayerRuntimeData().isRightHandMainHand ? RE::VR_DEVICE::kRightController : RE::VR_DEVICE::kLeftController;
+					auto origTelekinesis = a_arg->grabPickRef[hand].native_handle();
+
 					RE::RefHandle chosenTelekinesis = origTelekinesis;
 					{
 						std::scoped_lock lock(locker_picked);
@@ -367,13 +453,13 @@ namespace BetterTelekinesis
 						case 2:
 							chosenTelekinesis = 0;
 							break;
-						default: 
+						default:
 							break;
 						}
 					}
 
 					if (origTelekinesis != chosenTelekinesis) {
-						a_arg->grabPickRef = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis).get();
+						a_arg->grabPickRef[hand] = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis)->GetHandle();
 					}
 				}
 				static inline REL::Relocation<decltype(thunk)> func;
@@ -485,7 +571,7 @@ namespace BetterTelekinesis
 			// Player update func, clears grabbed objects in some cases.
 			struct PlayerUpdateClear
 			{
-				static void thunk(RE::PlayerCharacter*)
+				static void thunk()
 				{
 					clear_grabindex(true);
 				}
@@ -495,7 +581,7 @@ namespace BetterTelekinesis
 			// Player ::Revert
 			struct PlayerRevertClear
 			{
-				static void thunk(RE::PlayerCharacter*)
+				static void thunk()
 				{
 					clear_grabindex(false);
 				}
@@ -507,8 +593,14 @@ namespace BetterTelekinesis
 			{
 				static void thunk(const RE::PlayerCharacter* plr)
 				{
-					// plr->grabType = plr + 0xAF4
-					if (current_grabindex != 0 || plr->GetPlayerRuntimeData().grabType.underlying() != 0) {
+					RE::PlayerCharacter::GrabbingType grabType;
+					if (!REL::Module::IsVR()) {
+						grabType = plr->GetPlayerRuntimeData().grabType.get();
+					} else {
+						auto hand = plr->GetVRPlayerRuntimeData().isRightHandMainHand ? RE::VR_DEVICE::kRightController : RE::VR_DEVICE::kLeftController;
+						grabType = plr->GetVRPlayerRuntimeData().grabbedObjectData[hand].grabType;
+					}
+					if (current_grabindex != 0 || grabType != RE::PlayerCharacter::GrabbingType::kNone) {
 						clear_grabindex(false);
 					}
 				}
@@ -617,31 +709,37 @@ namespace BetterTelekinesis
 
 			static void Install()
 			{
-				stl::write_thunk_call<LimitTelekinesisSound1>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0xE1C - 0xDC0, 0x51));
-				stl::write_thunk_call<LimitTelekinesisSound2>(RELOCATION_ID(34250, 35052).address() + REL::Relocate(0x4C4 - 0x250, 0x243));
-				stl::write_thunk_call<FixGrabActorHoldHostility>(RELOCATION_ID(33564, 34333).address() + REL::Relocate(0xC7C - 0xB40, 0x135));
-				if (REL::Module::get().IsAE()) {
+				stl::write_thunk_call<LimitTelekinesisSound1>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0xE1C - 0xDC0, 0x51, 0xAC));
+				stl::write_thunk_call<LimitTelekinesisSound2>(RELOCATION_ID(34250, 35052).address() + REL::Relocate(0x4C4 - 0x250, 0x243, 0x360));
+				stl::write_thunk_call<FixGrabActorHoldHostility>(RELOCATION_ID(33564, 34333).address() + REL::Relocate(0xC7C - 0xB40, 0x135, 0x13C));
+				if (REL::Module::IsAE()) {
 					stl::write_thunk_call<TelekinesisLaunchAE>(RELOCATION_ID(34256, 35048).address() + REL::Relocate(0x1C, 0x58));
 				} else {
-					stl::write_thunk_call<TelekinesisLaunchSE>(RELOCATION_ID(34256, 35048).address() + REL::Relocate(0x1C, 0x58));
+					stl::write_thunk_call<TelekinesisLaunchSE>(RELOCATION_ID(34256, 35048).address() + REL::Relocate(0x1C, 0x58, 0x78));
 				}
-				stl::write_thunk_call<GrabActorLaunch>(RELOCATION_ID(33559, 34335).address() + REL::Relocate(0x8AD - 0x730, 0x17D));
+				stl::write_thunk_call<GrabActorLaunch>(RELOCATION_ID(33559, 34335).address() + REL::Relocate(0x8AD - 0x730, 0x17D, 0x193));
 
 				if (Config::OverwriteTargetPicker) {
-					stl::write_thunk_call<ApplyOverwriteTargetPick>(RELOCATION_ID(39534, 40620).address() + REL::Relocate(0x5E4 - 0x3D0, 0x1D5));
-					stl::write_thunk_call<ApplyOverwriteTargetPick2>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0x19, 0x19));
+					if (!REL::Module::IsVR()) {
+						stl::write_thunk_call<ApplyOverwriteTargetPick>(RELOCATION_ID(39534, 40620).address() + REL::Relocate(0x5E4 - 0x3D0, 0x1D5));
+					} else {
+						stl::write_thunk_call<ApplyOverwriteTargetPickVR>(RELOCATION_ID(39534, 40620).address() + REL::Relocate(0x5E4 - 0x3D0, 0x1D5, 0x44F));
+					}
+					stl::write_thunk_call<ApplyOverwriteTargetPick2>(RELOCATION_ID(34259, 35046).address() + REL::Relocate(0x19, 0x19, 0x69));
 				}
 
 				//Multi-telekinesis
 				if (Config::TelekinesisMaxObjects > 1) {
-					auto addr = RELOCATION_ID(39375, 40447).address() + REL::Relocate(0xEC86 - 0xE770, 0xA67);
-					REL::safe_fill(addr, 0x90, 0xC);
+					auto addr = RELOCATION_ID(39375, 40447).address() + REL::Relocate(0xEC86 - 0xE770, 0xA67, 0x522);
+					REL::safe_fill(addr, 0x90, REL::Relocate(0xC, 0xC, 0xA));
 					// Player update func, clears grabbed objects in some cases.
-					stl::write_thunk_call<PlayerUpdateClear>(RELOCATION_ID(39375, 40447).address() + REL::Relocate(0x522, 0xA73));
-					stl::write_thunk_call<PlayerRevertClear>(RELOCATION_ID(39466, 40543).address() + REL::Relocate(0x9837 - 0x9620, 0x3C6));
-					stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0));
-
-					stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176));
+					stl::write_thunk_call<PlayerUpdateClear>(RELOCATION_ID(39375, 40447).address() + REL::Relocate(0x522, 0xA73, 0x52C));
+					stl::write_thunk_call<PlayerRevertClear>(RELOCATION_ID(39466, 40543).address() + REL::Relocate(0x9837 - 0x9620, 0x3C6, 0x385));
+					stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0, 0x417));
+					if (REL::Module::IsVR()) {
+						stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0, 0x497));
+					}
+					stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176, 0x223));
 				}
 
 				bool marketplace = REL::Relocate(false, REL::Module::get().version() >= SKSE::RUNTIME_SSE_1_6_1130);
@@ -714,7 +812,7 @@ namespace BetterTelekinesis
 		static std::vector<RE::ActiveEffect*> GetCurrentRelevantActiveEffects();
 
 		inline static uint32_t _last_updated_telek = 0;
-		inline static  bool _next_update_telek = false;
+		inline static bool _next_update_telek = false;
 		inline static bool _last_weap_out = false;
 
 		static inline uintptr_t _total_telek_time = 0;
@@ -873,7 +971,7 @@ namespace BetterTelekinesis
 			unsigned int handle = 0;
 			float dist = 0;
 			float wgt = 0;
-			REX::EnumSet<RE::PlayerCharacter::GrabbingType, std::uint32_t> grabtype = RE::PlayerCharacter::GrabbingType::kNone;
+			RE::PlayerCharacter::GrabbingType grabtype = RE::PlayerCharacter::GrabbingType::kNone;
 			int index_of_obj = 0;
 			std::unique_ptr<random_move_generator> rng;
 			char spring[0x30] = {};
