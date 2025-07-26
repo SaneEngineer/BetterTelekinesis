@@ -97,6 +97,8 @@ namespace Raycast
 	static_assert(sizeof(RayResult) == 128);
 #pragma warning(pop)
 
+	RE::NiAVObject* getAVObject(const RE::hkpCdBody* body);
+
 	// Cast a ray from 'start' to 'end', returning the first thing it hits
 	// This variant collides with pretty much any solid geometry
 	//	Params:

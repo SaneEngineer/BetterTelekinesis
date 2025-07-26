@@ -61,6 +61,13 @@ RE::NiAVObject* Raycast::RayCollector::HitResult::getAVObject()
 	return body ? getAVObject(body) : nullptr;
 }
 
+RE::NiAVObject* Raycast::getAVObject(const RE::hkpCdBody* body)
+{
+	typedef RE::NiAVObject* (*_GetUserData)(const RE::hkpCdBody*);
+	static auto getAVObject = REL::Relocation<_GetUserData>(RELOCATION_ID(76160, 77988));
+	return body ? getAVObject(body) : nullptr;
+}
+
 Raycast::RayResult Raycast::hkpCastRay(const glm::vec4& start, const glm::vec4& end) noexcept
 {
 #ifndef NDEBUG

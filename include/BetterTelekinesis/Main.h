@@ -392,8 +392,7 @@ namespace BetterTelekinesis
 				{
 					func(a_arg, hkWorld, sourcePoint, sourceRotation, b_arg);
 
-					auto player = RE::PlayerCharacter::GetSingleton();
-					auto hand = player->GetVRPlayerRuntimeData().isRightHandMainHand ? RE::VR_DEVICE::kRightController : RE::VR_DEVICE::kLeftController;
+					auto hand = CastingLeftHandVR() ? RE::VR_DEVICE::kLeftController : RE::VR_DEVICE::kRightController;
 					auto origTelekinesis = a_arg->grabPickRef[hand].native_handle();
 
 					RE::RefHandle chosenTelekinesis = origTelekinesis;
@@ -459,7 +458,10 @@ namespace BetterTelekinesis
 					}
 
 					if (origTelekinesis != chosenTelekinesis) {
-						a_arg->grabPickRef[hand] = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis)->GetHandle();
+						auto refr = RE::TESObjectREFR::LookupByHandle(chosenTelekinesis);
+						if (refr) {
+							a_arg->grabPickRef[hand] = refr->GetHandle();
+						}
 					}
 				}
 				static inline REL::Relocation<decltype(thunk)> func;
@@ -591,13 +593,15 @@ namespace BetterTelekinesis
 			// Called from ActivateHandler, probably to drop grabbed objects.
 			struct ActivateHandlerClear
 			{
-				static void thunk(const RE::PlayerCharacter* plr)
+				static void thunk(RE::PlayerCharacter* plr)
 				{
 					RE::PlayerCharacter::GrabbingType grabType;
+
 					if (!REL::Module::IsVR()) {
 						grabType = plr->GetPlayerRuntimeData().grabType.get();
 					} else {
-						auto hand = plr->GetVRPlayerRuntimeData().isRightHandMainHand ? RE::VR_DEVICE::kRightController : RE::VR_DEVICE::kLeftController;
+						auto hand = CastingLeftHandVR() ? RE::VR_DEVICE::kLeftController : RE::VR_DEVICE::kRightController;
+
 						grabType = plr->GetVRPlayerRuntimeData().grabbedObjectData[hand].grabType;
 					}
 					if (current_grabindex != 0 || grabType != RE::PlayerCharacter::GrabbingType::kNone) {
@@ -610,10 +614,16 @@ namespace BetterTelekinesis
 			// Rotate the normal vector based on current index of telekinesised item to separate them out a bit.
 			struct SeperateTelekinesis
 			{
-				static void thunk(RE::PlayerCharacter* plr, RE::NiPoint3& a_origin, RE::NiPoint3& a_direction, bool a_includeCameraOffset)
+				static void thunk(int a_arg, RE::NiPoint3& a_origin, RE::NiPoint3& a_direction, bool a_includeCameraOffset)
 				{
-					//func(plr, a_origin, a_direction, a_includeCameraOffset);
-					plr->GetEyeVector(a_origin, a_direction, a_includeCameraOffset);
+					auto plr = RE::PlayerCharacter::GetSingleton();
+
+					if (!REL::Module::IsVR()) {
+						plr->GetEyeVector(a_origin, a_direction, a_includeCameraOffset);
+					} else {
+						//Unique? VR function 0x1406E96C0 that is different for each hand
+						func(a_arg, a_origin, a_direction, a_includeCameraOffset);
+					}
 
 					auto pt = current_grabindex;
 					if (pt == 0) {
@@ -738,8 +748,10 @@ namespace BetterTelekinesis
 					stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0, 0x417));
 					if (REL::Module::IsVR()) {
 						stl::write_thunk_call<ActivateHandlerClear>(RELOCATION_ID(41346, 42420).address() + REL::Relocate(0x1E2, 0x1B0, 0x497));
+						stl::write_thunk_call<SeperateTelekinesis>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176, 0x223));
+					} else {
+						stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176, 0x223));
 					}
-					stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176, 0x223));
 				}
 
 				bool marketplace = REL::Relocate(false, REL::Module::get().version() >= SKSE::RUNTIME_SSE_1_6_1130);
@@ -753,7 +765,6 @@ namespace BetterTelekinesis
 		inline static double Time = 0;
 		inline static uint32_t frame = 0;
 
-		//private static int _dbg_counter = 0;
 	public:
 		static uintptr_t addr_TeleDamBase;
 		static uintptr_t addr_TeleDamMult;
@@ -789,11 +800,11 @@ namespace BetterTelekinesis
 		inline static std::optional<uint32_t> drop_timer;
 
 	public:
-		inline static Util::CachedFormList* Spells;
+		inline static Util::CachedFormList* Spells = nullptr;
 
-		inline static Util::CachedFormList* PrimarySpells;
+		inline static Util::CachedFormList* PrimarySpells = nullptr;
 
-		inline static Util::CachedFormList* SecondarySpells;
+		inline static Util::CachedFormList* SecondarySpells = nullptr;
 
 		inline static std::vector<std::string> grabActorNodes;
 
@@ -967,15 +978,15 @@ namespace BetterTelekinesis
 		public:
 			saved_grab_index();
 
-			uintptr_t addr;
+			uintptr_t addr = 0;
 			unsigned int handle = 0;
 			float dist = 0;
 			float wgt = 0;
 			RE::PlayerCharacter::GrabbingType grabtype = RE::PlayerCharacter::GrabbingType::kNone;
 			int index_of_obj = 0;
 			std::unique_ptr<random_move_generator> rng;
+			//RE::BSTSmallArray<RE::hkRefPtr<RE::bhkMouseSpringAction>, 4> spring = {};
 			char spring[0x30] = {};
-			char spring_alloc[0x30] = {};
 		};
 
 		inline static auto saved_grabindex = std::unordered_map<uintptr_t, std::shared_ptr<saved_grab_index>>();
@@ -985,7 +996,7 @@ namespace BetterTelekinesis
 
 		static int unsafe_find_free_index();
 
-		inline static uintptr_t current_grabindex;
+		inline static uintptr_t current_grabindex = 0;
 
 		static void switch_to_grabindex(uintptr_t addr, const std::string& reason, float diff = 0.0f);
 
@@ -1052,6 +1063,8 @@ namespace BetterTelekinesis
 		static OurItemTypes IsOurItem(const RE::TESForm* baseForm);
 
 		static bool HasAnyNormalTelekInHand();
+
+		static bool CastingLeftHandVR();
 	};
 
 	class find_nearest_node_helper final
