@@ -413,10 +413,6 @@ namespace BetterTelekinesis
 		}
 	}
 
-	uintptr_t BetterTelekinesisPlugin::addr_TeleDamBase = RELOCATION_ID(506190, 376040).address() + 8;
-	uintptr_t BetterTelekinesisPlugin::addr_TeleDamMult = RELOCATION_ID(506186, 376034).address() + 8;
-	uintptr_t BetterTelekinesisPlugin::addr_CanBeTelekinesis = RELOCATION_ID(33822, 34614).address();
-	uintptr_t BetterTelekinesisPlugin::addr_PickDistance = RELOCATION_ID(502526, 370108).address() + 8;
 	static float MaxHelper()
 	{
 		auto fpick = Memory::Internal::read<float>(BetterTelekinesisPlugin::addr_PickDistance);
@@ -450,6 +446,17 @@ namespace BetterTelekinesis
 		}
 
 		return nullptr;
+	}
+
+	static RE::NiNode* GetVRAimNodeHelper(RE::VR_DEVICE device)
+	{
+		auto plr = RE::PlayerCharacter::GetSingleton();
+
+		if (plr->GetVRPlayerRuntimeData().isRightHandMainHand && device == RE::VR_DEVICE::kLeftController || plr->GetVRPlayerRuntimeData().isLeftHandMainHand && device == RE::VR_DEVICE::kRightController) {
+			return plr->GetVRNodeData()->SecondaryMagicAimNode.get();
+		} 
+
+		return plr->GetVRNodeData()->PrimaryMagicAimNode.get();
 	}
 
 	void BetterTelekinesisPlugin::Initialize()
@@ -592,6 +599,44 @@ namespace BetterTelekinesis
 				trampoline.write_branch<6>(addr, trampoline.allocate(patch3));
 				Memory::Internal::write<uint8_t>(addr + 6, 0xC3, true);
 			}
+		}
+
+		//Fix Telekinesis Launch Angle in VR
+		if (REL::Module::IsVR()) {
+			addr = RELOCATION_ID(34250, 35052).address() + 0x1C4;
+			struct Patch4 : Xbyak::CodeGenerator
+			{
+				Patch4(uintptr_t a_func, uintptr_t a_target)
+				{
+					Xbyak::Label retnLabel;
+					Xbyak::Label funcLabel;
+
+					mov(ecx, esi);
+
+					sub(rsp, 0x20);
+					call(ptr[rip + funcLabel]);
+					add(rsp, 0x20);
+
+					mov(rcx, rax);
+					mov(rdx, r12);
+
+					movups(xmm0, ptr[rcx + 0x7C]);
+					movups(ptr[rbp - 0x9], xmm0);
+
+					jmp(ptr[rip + retnLabel]);
+
+					L(funcLabel);
+					dq(a_func);
+
+
+					L(retnLabel);
+					dq(a_target + 0x8);
+				}
+			};
+			Patch4 patch4(reinterpret_cast<uintptr_t>(GetVRAimNodeHelper), addr);
+			patch4.ready();
+
+			trampoline.write_branch<5>(addr, trampoline.allocate(patch4));
 		}
 
 		if (Config::FixSuperHugeTelekinesisDistanceBug) {

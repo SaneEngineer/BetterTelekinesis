@@ -766,10 +766,10 @@ namespace BetterTelekinesis
 		inline static uint32_t frame = 0;
 
 	public:
-		static uintptr_t addr_TeleDamBase;
-		static uintptr_t addr_TeleDamMult;
-		static uintptr_t addr_CanBeTelekinesis;
-		static uintptr_t addr_PickDistance;
+		static inline uintptr_t addr_TeleDamBase = RELOCATION_ID(506190, 376040).address() + 8;
+		static inline uintptr_t addr_TeleDamMult = RELOCATION_ID(506186, 376034).address() + 8;
+		static inline uintptr_t addr_CanBeTelekinesis = RELOCATION_ID(33822, 34614).address();
+		static inline uintptr_t addr_PickDistance = RELOCATION_ID(502526, 370108).address() + 8;
 
 		inline static float _reach_spell = 0.0f;
 
