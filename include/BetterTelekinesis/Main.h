@@ -763,7 +763,6 @@ namespace BetterTelekinesis
 		inline static int HeldUpdateCounter = 0;
 
 		inline static double Time = 0;
-		inline static uint32_t frame = 0;
 
 	public:
 		static inline uintptr_t addr_TeleDamBase = RELOCATION_ID(506190, 376040).address() + 8;
@@ -1009,10 +1008,6 @@ namespace BetterTelekinesis
 		static void _select_rotation_offset(int index, int& x, int& y);
 
 		static const std::vector<std::pair<int, int>> _rot_offsets;
-
-		static float rotate_speed(float diff);
-
-		static float adjust_diff(float current, float target);
 
 		static void activate_node(const RE::NiNode* node);
 

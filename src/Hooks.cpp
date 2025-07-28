@@ -9,8 +9,6 @@ namespace BetterTelekinesis
 
 	void BetterTelekinesisPlugin::Update()
 	{
-		frame++;
-
 		float diff = RE::Main::QFrameAnimTime();
 		Time += diff;
 
@@ -173,10 +171,7 @@ namespace BetterTelekinesis
 					auto objHolder = RE::TESObjectREFR::LookupByHandle(snd->ObjectHandleId).get();
 					if (objHolder != nullptr) {
 						auto ptr = objHolder;
-						if (frame % 2 == 0) {
-							update_held_object(ptr, snd, ef);
-							frame = 0;
-						}
+						update_held_object(ptr, snd, ef);
 					} else {
 						if (rem.empty()) {
 							rem = std::vector<unsigned int>();
@@ -202,7 +197,7 @@ namespace BetterTelekinesis
 			}
 		}
 
-		//UpdateSwordEffects();
+		UpdateSwordEffects();
 
 		if (Config::AutoLearnTelekinesisVariants) {
 			auto prim = PrimarySpells;
@@ -454,7 +449,7 @@ namespace BetterTelekinesis
 
 		if (plr->GetVRPlayerRuntimeData().isRightHandMainHand && device == RE::VR_DEVICE::kLeftController || plr->GetVRPlayerRuntimeData().isLeftHandMainHand && device == RE::VR_DEVICE::kRightController) {
 			return plr->GetVRNodeData()->SecondaryMagicAimNode.get();
-		} 
+		}
 
 		return plr->GetVRNodeData()->PrimaryMagicAimNode.get();
 	}
@@ -550,6 +545,77 @@ namespace BetterTelekinesis
 
 		trampoline.write_branch<5>(addr, trampoline.allocate(patch2));
 
+		// Can't work, projectiles are handled too different in havok.
+		//if(SettingsInstance.AllowProjectileTelekinesis)
+		{
+			/*Memory.WriteHook(new HookParameters()
+                {
+                    Address = new IntPtr(0x140556CA6).FromBase(),
+                    IncludeLength = 6,
+                    ReplaceLength = 6,
+                    Before = ctx =>
+                    {
+                        if (ctx.AX.ToUInt32() == 4)
+                            ctx.AX = new IntPtr(3);
+                    }
+                });
+
+                // 83 C0 FC 83 F8 01
+                Memory.WriteHook(new HookParameters()
+                {
+                    Address = new IntPtr(0x1406AB9F9).FromBase(),
+                    IncludeLength = 6,
+                    ReplaceLength = 6,
+                    Before = ctx =>
+                    {
+                        if (ctx.AX.ToUInt32() == 4)
+                            ctx.AX = new IntPtr(3);
+                    }
+                });
+
+                Memory.WriteHook(new HookParameters()
+                {
+                    Address = new IntPtr(0x1406AB19F).FromBase(),
+                    IncludeLength = 6,
+                    ReplaceLength = 6,
+                    After = ctx =>
+                    {
+                        ctx.AX = IntPtr.Zero;
+                    }
+                });*/
+
+			/*var addr = gi(33822, 0xCC6 - 0xC30, "40 0F B6 FF 8D 48 FC B8 01 00 00 00 3B C8 0F 46 F8");
+                Memory.WriteHook(new HookParameters()
+                {
+                    Address = addr,
+                    IncludeLength = 0,
+                    ReplaceLength = 0x11,
+                    Before = ctx =>
+                    {
+                        CollisionLayers layer = (CollisionLayers)ctx.AX.ToInt32Safe();
+                        bool ok = false;
+                        switch(layer)
+                        {
+                            // Default game only allows clutter or weapon.
+                            case CollisionLayers.Clutter:
+                            case CollisionLayers.Weapon:
+                                ok = true;
+                                break;
+
+                            case CollisionLayers.Projectile:
+                                ok = true;
+                                break;
+                        }
+
+                        ctx.DI = new IntPtr(ok ? 1 : 0);
+                    }
+                });*/
+
+			// Since all the ones we want to allow are sequential we can only change the comparison operand.
+			//var addr = gi(33822, 0xCCD - 0xC30, "B8 01 00 00 00");
+			//Memory.WriteUInt8(addr + 1, 2, true);
+		}
+
 		if (Config::DontDeactivateHavokHoldSpring) {
 			// Don't allow spring to deactivate.
 			addr = RELOCATION_ID(61571, 62469).address() + REL::Relocate(0x9AE - 0x980, 0x2E);
@@ -627,7 +693,6 @@ namespace BetterTelekinesis
 
 					L(funcLabel);
 					dq(a_func);
-
 
 					L(retnLabel);
 					dq(a_target + 0x8);
@@ -1718,7 +1783,7 @@ namespace BetterTelekinesis
 					}
 
 					REL::Relocation<bool (*)(RE::TESObjectREFR*)> CanBeTelekinesis{ addr_CanBeTelekinesis };
-					if (CanBeTelekinesis(obj.get())) {
+					if (CanBeTelekinesis(obj.get()) || Config::TelekinesisDisarmsEnemies && obj->IsActor()) {
 						begin_profile();
 						process_one_obj(obj.get(), data, quickMaxDist);
 						//arrow_debug = false;
@@ -2628,26 +2693,6 @@ namespace BetterTelekinesis
 
 	const std::vector<std::pair<int, int>> BetterTelekinesisPlugin::_rot_offsets = { std::pair(0, 0), std::pair(1, 1), std::pair(1, -1), std::pair(-1, 1), std::pair(-1, -1), std::pair(1, 0), std::pair(-1, 0), std::pair(2, 2), std::pair(0, -1), std::pair(0, 1), std::pair(-2, -2), std::pair(2, 1), std::pair(-2, 2), std::pair(2, -2), std::pair(-2, -1), std::pair(1, 2), std::pair(1, -2), std::pair(-2, 1), std::pair(2, 0), std::pair(-1, -2), std::pair(-1, 2), std::pair(2, -1), std::pair(-2, 0), std::pair(2, 3), std::pair(0, -2), std::pair(0, 2), std::pair(-3, -2), std::pair(3, -2), std::pair(-2, 3), std::pair(3, 2), std::pair(-2, -3), std::pair(-3, 2), std::pair(2, -3), std::pair(1, 3), std::pair(-1, -3), std::pair(-1, 3), std::pair(3, 0), std::pair(-3, -1), std::pair(3, -1), std::pair(-3, 1), std::pair(3, 1), std::pair(0, -3), std::pair(0, 3), std::pair(-3, 0), std::pair(1, -3), std::pair(2, 4), std::pair(-4, -2), std::pair(4, -2), std::pair(-2, 4), std::pair(-2, -4), std::pair(4, 2), std::pair(-4, 2), std::pair(2, -4), std::pair(1, 4), std::pair(-3, -3), std::pair(4, 1), std::pair(-3, 3), std::pair(1, -4), std::pair(3, 3), std::pair(-4, -1), std::pair(4, -1), std::pair(-4, 1), std::pair(3, -3), std::pair(-1, 4), std::pair(-1, -4), std::pair(5, 3), std::pair(-4, 0), std::pair(4, 0), std::pair(-5, 3), std::pair(3, -5), std::pair(0, 4), std::pair(0, -4), std::pair(3, 5), std::pair(-5, -3), std::pair(5, -3), std::pair(-3, 5), std::pair(-3, -5), std::pair(4, 4), std::pair(4, -4), std::pair(-4, 4), std::pair(-4, -4), std::pair(5, 2), std::pair(-5, 2), std::pair(3, -4), std::pair(2, 5), std::pair(-4, -3), std::pair(5, -2), std::pair(-3, 4), std::pair(2, -5), std::pair(1, 5), std::pair(-5, -2), std::pair(5, -1), std::pair(-5, 1), std::pair(4, 3), std::pair(-2, -5), std::pair(-2, 5), std::pair(4, -3), std::pair(-5, -1), std::pair(5, 1), std::pair(-4, 3) };
 
-	float BetterTelekinesisPlugin::rotate_speed(float diff)
-	{
-		float adiff = std::abs(diff);
-
-		// Less than 1 degree difference.
-		if (adiff < 0.017453f) {
-			return 0.0f;
-		}
-
-		// diff is in radians
-		return diff * 20.0f;
-	}
-
-	float BetterTelekinesisPlugin::adjust_diff(const float current, const float target)
-	{
-		float x = target - current;
-		x -= RE::NI_PI;
-		return -RE::NI_PI + std::fmod(RE::NI_TWO_PI + std::fmod(x, RE::NI_TWO_PI), RE::NI_TWO_PI);
-	}
-
 	void BetterTelekinesisPlugin::activate_node(const RE::NiNode* node)
 	{
 		if (node == nullptr) {
@@ -2664,19 +2709,18 @@ namespace BetterTelekinesis
 			return;
 		}
 
-		auto alloc = RE::hkVector4();
+		auto vel = RE::hkVector4();
 
-		rigidBody->SetAngularVelocity(alloc);
+		rigidBody->SetAngularVelocity(vel);
 	}
 
-	void BetterTelekinesisPlugin::update_point_forward(RE::TESObjectREFR* obj)
+	void BetterTelekinesisPlugin::update_point_forward(RE::TESObjectREFR* refr)
 	{
-		if (obj == nullptr) {
+		if (refr == nullptr) {
 			return;
 		}
 
 		auto plr = RE::PlayerCharacter::GetSingleton();
-
 		if (plr == nullptr) {
 			return;
 		}
@@ -2685,19 +2729,30 @@ namespace BetterTelekinesis
 		if (pcam == nullptr) {
 			return;
 		}
-		auto& camNode = pcam->cameraRoot;
-		if (camNode == nullptr) {
-			return;
+
+		RE::NiMatrix3 mat;
+
+		if (!REL::Module::IsVR()) {
+			auto camRoot = pcam->cameraRoot;
+			if (camRoot == nullptr) {
+				return;
+			}
+
+			mat = camRoot->world.rotate;
+		} else {
+			if (CastingLeftHandVR()) {
+				mat = plr->GetVRNodeData()->LeftWandNode->world.rotate;
+			} else {
+				mat = plr->GetVRNodeData()->RightWandNode->world.rotate;
+			}
 		}
 
-		RE::NiPoint3 pt;
+		RE::NiPoint3 AngleWanted;
 
-		//pt = plr->data.angle;
+		mat.ToEulerAnglesXYZ(AngleWanted);
 
-		camNode->world.rotate.ToEulerAnglesXYZ(pt);
-
-		obj->SetAngle(pt);
-		obj->Update3DPosition(true);
+		refr->SetAngle(AngleWanted);
+		refr->Update3DPosition(true);
 	}
 
 	void BetterTelekinesisPlugin::update_held_object(RE::TESObjectREFR* obj, const std::shared_ptr<held_obj_data>& data, const std::vector<RE::ActiveEffect*>& effectList)
@@ -3076,10 +3131,17 @@ namespace BetterTelekinesis
 		if (plr == nullptr) {
 			return false;
 		}
+
+		auto pcam = RE::PlayerCamera::GetSingleton();
+		if (pcam == nullptr) {
+			return false;
+		}
+
 		auto rootPlr = plr->Get3D();
 		if (rootPlr == nullptr) {
 			return false;
 		}
+
 		auto head = plr->GetNodeByName("NPC Head [Head]");
 		if (head == nullptr) {
 			head = rootPlr;
@@ -3133,8 +3195,27 @@ namespace BetterTelekinesis
 		}
 
 		sword_data::Temp2 = Util::Translate(camWt, sword_data::Temp1);
-		//sword_data::Temp3 = plr->data.angle;
-		camWt.rotate.ToEulerAnglesXYZ(sword_data::Temp3);
+
+		RE::NiMatrix3 mat;
+
+		if (!REL::Module::IsVR()) {
+			auto camRoot = pcam->cameraRoot;
+
+			if (camRoot == nullptr)
+			{
+				return false;
+			}
+
+			mat = camRoot->world.rotate;
+		} else {
+			if (CastingLeftHandVR()) {
+				mat = plr->GetVRNodeData()->LeftWandNode->world.rotate;
+			} else {
+				mat = plr->GetVRNodeData()->RightWandNode->world.rotate;
+			}
+		}
+
+		mat.ToEulerAnglesXYZ(sword_data::Temp3);
 
 		begin = { hpos.x, hpos.y, hpos.z, 0.0f };
 		end = { sword_data::Temp2.x, sword_data::Temp2.y, sword_data::Temp2.z, 0.0f };
