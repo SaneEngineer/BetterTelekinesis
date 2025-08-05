@@ -328,7 +328,7 @@ namespace BetterTelekinesis
 						if (actor != nullptr) {
 							float dam = CalculateCurrentTelekinesisDamage(plr, actor) * diff * static_cast<float>(Config::HoldActorDamage);
 							if (dam > 0.0f) {
-								actor->AsActorValueOwner()->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, -dam);
+								actor->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, -dam);
 							}
 						}
 					}
@@ -767,7 +767,7 @@ namespace BetterTelekinesis
 
 		float damTotal = CalculateCurrentTelekinesisDamage(plr, actorPtr) * static_cast<float>(Config::ThrowActorDamage);
 		if (damTotal > 0.0f) {
-			actorPtr->AsActorValueOwner()->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, -damTotal);
+			actorPtr->AsActorValueOwner()->DamageActorValue(RE::ActorValue::kHealth, -damTotal);
 		}
 	}
 
@@ -2730,26 +2730,40 @@ namespace BetterTelekinesis
 			return;
 		}
 
-		RE::NiMatrix3 mat;
+		RE::NiPoint3 AngleWanted;
 
 		if (!REL::Module::IsVR()) {
-			auto camRoot = pcam->cameraRoot;
-			if (camRoot == nullptr) {
-				return;
-			}
+			RE::NiQuaternion q;
+			pcam->currentState->GetRotation(q);
 
-			mat = camRoot->world.rotate;
+			const double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+			const double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+			AngleWanted.x = std::atan2(sinr_cosp, cosr_cosp);
+
+			// Pitch (y-axis rotation)
+			if (const double sinp = 2 * (q.w * q.y - q.z * q.x); std::abs(sinp) >= 1)
+				AngleWanted.y = std::copysign(glm::pi<float>() / 2, sinp);
+			else
+				AngleWanted.y = std::asin(sinp);
+
+			// Yaw (z-axis rotation)
+			const double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+			const double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+			AngleWanted.z = std::atan2(siny_cosp, cosy_cosp);
+
+			AngleWanted.x = AngleWanted.x * -1;
+			//euler.y = euler.y;
+			AngleWanted.z = AngleWanted.z * -1;
 		} else {
+			RE::NiMatrix3 mat;
 			if (CastingLeftHandVR()) {
 				mat = plr->GetVRNodeData()->LeftWandNode->world.rotate;
 			} else {
 				mat = plr->GetVRNodeData()->RightWandNode->world.rotate;
 			}
+
+			mat.ToEulerAnglesXYZ(AngleWanted);
 		}
-
-		RE::NiPoint3 AngleWanted;
-
-		mat.ToEulerAnglesXYZ(AngleWanted);
 
 		refr->SetAngle(AngleWanted);
 		refr->Update3DPosition(true);
@@ -3201,8 +3215,7 @@ namespace BetterTelekinesis
 		if (!REL::Module::IsVR()) {
 			auto camRoot = pcam->cameraRoot;
 
-			if (camRoot == nullptr)
-			{
+			if (camRoot == nullptr) {
 				return false;
 			}
 
