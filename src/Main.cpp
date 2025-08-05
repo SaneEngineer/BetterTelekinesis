@@ -23,11 +23,11 @@ void InitializeMessaging()
 				// It is now safe to do multithreaded operations, or operations against other plugins.
 				break;
 			case MessagingInterface::kInputLoaded:  // Called when all game data has been found.
-				BetterTelekinesis::MenuOpenCloseEventHandler::Register();
-				BetterTelekinesis::HotkeyPressedEventHandler::Register();
 				break;
 			case MessagingInterface::kDataLoaded:  // All ESM/ESL/ESP plugins have loaded, main menu is now active.
 				// It is now safe to access form data.
+				BetterTelekinesis::HotkeyPressedEventHandler::Register();
+				BetterTelekinesis::BetterTelekinesisPlugin::OnMainMenuOpen();
 				BetterTelekinesis::BetterTelekinesisPlugin::Initialize();
 				break;
 			default:

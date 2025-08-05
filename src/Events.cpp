@@ -2,7 +2,6 @@
 
 namespace BetterTelekinesis
 {
-
 	HotkeyPressedEventHandler* HotkeyPressedEventHandler::GetSingleton()
 	{
 		static HotkeyPressedEventHandler singleton;
@@ -12,17 +11,6 @@ namespace BetterTelekinesis
 	void HotkeyPressedEventHandler::Register()
 	{
 		RE::BSInputDeviceManager::GetSingleton()->AddEventSink(GetSingleton());
-	}
-
-	MenuOpenCloseEventHandler* MenuOpenCloseEventHandler::GetSingleton()
-	{
-		static MenuOpenCloseEventHandler singleton;
-		return &singleton;
-	}
-
-	void MenuOpenCloseEventHandler::Register()
-	{
-		RE::UI::GetSingleton()->AddEventSink(GetSingleton());
 	}
 
 	RE::BSEventNotifyControl HotkeyPressedEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*)
@@ -38,19 +26,6 @@ namespace BetterTelekinesis
 							BetterTelekinesisPlugin::_try_drop_now();
 						}
 					}
-				}
-			}
-		}
-
-		return RE::BSEventNotifyControl::kContinue;
-	}
-
-	RE::BSEventNotifyControl MenuOpenCloseEventHandler::ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
-	{
-		if (a_event) {
-			if (a_event->menuName == RE::MainMenu::MENU_NAME) {
-				if (a_event->opening) {
-					BetterTelekinesisPlugin::OnMainMenuOpen();
 				}
 			}
 		}
