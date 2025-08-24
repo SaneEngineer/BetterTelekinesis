@@ -2733,27 +2733,9 @@ namespace BetterTelekinesis
 		RE::NiPoint3 AngleWanted;
 
 		if (!REL::Module::IsVR()) {
-			RE::NiQuaternion q;
-			pcam->currentState->GetRotation(q);
-
-			const double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-			const double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-			AngleWanted.x = std::atan2(sinr_cosp, cosr_cosp);
-
-			// Pitch (y-axis rotation)
-			if (const double sinp = 2 * (q.w * q.y - q.z * q.x); std::abs(sinp) >= 1)
-				AngleWanted.y = std::copysign(glm::pi<float>() / 2, sinp);
-			else
-				AngleWanted.y = std::asin(sinp);
-
-			// Yaw (z-axis rotation)
-			const double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-			const double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-			AngleWanted.z = std::atan2(siny_cosp, cosy_cosp);
-
-			AngleWanted.x = AngleWanted.x * -1;
-			//euler.y = euler.y;
-			AngleWanted.z = AngleWanted.z * -1;
+			RE::NiQuaternion qt;
+			pcam->currentState->GetRotation(qt);
+			AngleWanted = Util::NiQuarterionToEulerXYZ(qt);
 		} else {
 			RE::NiMatrix3 mat;
 			if (CastingLeftHandVR()) {
@@ -3210,25 +3192,23 @@ namespace BetterTelekinesis
 
 		sword_data::Temp2 = Util::Translate(camWt, sword_data::Temp1);
 
-		RE::NiMatrix3 mat;
-
 		if (!REL::Module::IsVR()) {
-			auto camRoot = pcam->cameraRoot;
+			RE::NiQuaternion qt;
 
-			if (camRoot == nullptr) {
-				return false;
-			}
+			pcam->currentState->GetRotation(qt);
 
-			mat = camRoot->world.rotate;
+			sword_data::Temp3 = Util::NiQuarterionToEulerXYZ(qt);
 		} else {
+			RE::NiMatrix3 mat;
+
 			if (CastingLeftHandVR()) {
 				mat = plr->GetVRNodeData()->LeftWandNode->world.rotate;
 			} else {
 				mat = plr->GetVRNodeData()->RightWandNode->world.rotate;
 			}
-		}
 
-		mat.ToEulerAnglesXYZ(sword_data::Temp3);
+			mat.ToEulerAnglesXYZ(sword_data::Temp3);
+		}
 
 		begin = { hpos.x, hpos.y, hpos.z, 0.0f };
 		end = { sword_data::Temp2.x, sword_data::Temp2.y, sword_data::Temp2.z, 0.0f };

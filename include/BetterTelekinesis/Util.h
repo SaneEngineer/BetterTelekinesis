@@ -36,6 +36,8 @@ namespace Util
 
 	RE::NiPoint3 viewMatrixToTranslate(const glm::mat4& matrix);
 
+	RE::NiPoint3 NiQuarterionToEulerXYZ(const RE::NiQuaternion& q);
+
 	class CachedFormList final
 	{
 		CachedFormList();

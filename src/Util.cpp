@@ -152,6 +152,32 @@ namespace Util
 		return result;
 	}
 
+	RE::NiPoint3 NiQuarterionToEulerXYZ(const RE::NiQuaternion& q)
+	{
+		RE::NiPoint3 euler;
+
+		const double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+		const double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+		euler.x = std::atan2(sinr_cosp, cosr_cosp);
+
+		// Pitch (y-axis rotation)
+		if (const double sinp = 2 * (q.w * q.y - q.z * q.x); std::abs(sinp) >= 1)
+			euler.y = std::copysign(glm::pi<float>() / 2, sinp);
+		else
+			euler.y = std::asin(sinp);
+
+		// Yaw (z-axis rotation)
+		const double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+		const double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+		euler.z = std::atan2(siny_cosp, cosy_cosp);
+
+		euler.x = euler.x * -1;
+		//euler.y = euler.y;
+		euler.z = euler.z * -1;
+
+		return euler;
+	}
+
 	CachedFormList::CachedFormList() = default;
 
 	CachedFormList* CachedFormList::TryParse(const std::string& input, std::string settingNameForLog, bool warnOnMissingForm, bool dontWriteAnythingToLog)
