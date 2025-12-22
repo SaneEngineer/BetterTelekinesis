@@ -412,7 +412,7 @@ namespace BetterTelekinesis
 		return std::max(fpick, BetterTelekinesisPlugin::_reach_spell);
 	}
 
-	static RE::NiAVObject* GetNearestActorHelper(RE::TESObjectREFR* obj)
+	static RE::NiAVObject* GetNearestActorHelper(const RE::TESObjectREFR* obj)
 	{
 		if (obj != nullptr) {
 			auto root = obj->Get3D();
@@ -458,11 +458,10 @@ namespace BetterTelekinesis
 		const std::time_t t_c = std::chrono::system_clock::to_time_t(now);
 		std::srand(static_cast<unsigned int>(t_c));
 
-		uintptr_t addr = 0;
 		auto& trampoline = SKSE::GetTrampoline();
 
 		// Allow launch object even if not pulled completely.
-		addr = RELOCATION_ID(34250, 35052).address() + REL::Relocate(0x332 - 0x250, 0x95, 0xE7);
+		uintptr_t addr = RELOCATION_ID(34250, 35052).address() + REL::Relocate(0x332 - 0x250, 0x95, 0xE7);
 		struct Patch : Xbyak::CodeGenerator
 		{
 			Patch(std::uintptr_t a_func, std::uintptr_t a_target, std::uintptr_t a_targetJumpOffset)
@@ -736,17 +735,14 @@ namespace BetterTelekinesis
 
 	float BetterTelekinesisPlugin::CalculateCurrentTelekinesisDamage(RE::PlayerCharacter* ptrPlr, RE::Actor* actorPtr)
 	{
-		float damBase = 0.0f;
-		float damMult = 1.0f;
-
 		float dam = Memory::Internal::read<float>(addr_TeleDamBase);
 
 		RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINTS::kModTelekinesisDamage, ptrPlr, actorPtr, dam);
-		damBase = dam;
+		float damBase = dam;
 		dam = Memory::Internal::read<float>(addr_TeleDamMult);
 
 		RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINTS::kModTelekinesisDamageMult, ptrPlr, actorPtr, dam);
-		damMult = dam;
+		float damMult = dam;
 
 		float damTotal = damBase * damMult;
 		return damTotal;
@@ -1296,7 +1292,7 @@ namespace BetterTelekinesis
 		float minY = static_cast<float>(coordY) * 4096.0f;
 		float maxY = static_cast<float>(coordY + 1) * 4096.0f;
 
-		float smallestDist = 999999.0f;
+		float smallestDist;
 		if (myX < minX) {
 			smallestDist = minX - myX;
 		} else if (myX > maxX) {
@@ -1569,8 +1565,7 @@ namespace BetterTelekinesis
 					continue;
 				}
 
-				auto cobj = Raycast::getAVObject(body);
-				if (cobj) {
+				if (auto cobj = Raycast::getAVObject(body)) {
 					if (data->ignore.contains(cobj->AsNode())) {
 						continue;
 					}
@@ -1791,6 +1786,7 @@ namespace BetterTelekinesis
 			}
 
 		} catch (...) {
+			logger::error("Exception occured while processing cell references. Ignoring for now.");
 		}
 
 		cell->GetRuntimeData().spinLock.Unlock();
@@ -1917,8 +1913,7 @@ namespace BetterTelekinesis
 					RE::ActiveEffect* ef2 = nullptr;
 					RE::EffectSetting* setting = nullptr;
 					if (!REL::Module::IsVR()) {
-						auto efs = plr->AsMagicTarget()->GetActiveEffectList();  //FindFirstEffectWithArchetype
-						if (efs) {
+						if (auto efs = plr->AsMagicTarget()->GetActiveEffectList()) {
 							for (auto& effect : *efs) {
 								setting = effect ? effect->GetBaseObject() : nullptr;
 								if (setting && setting->HasArchetype(RE::EffectSetting::Archetype::kTelekinesis)) {
@@ -2861,9 +2856,8 @@ namespace BetterTelekinesis
 			if (ghost_sword_effect != 0) {
 				auto form2 = RE::TESForm::LookupByID<RE::TESEffectShader>(ghost_sword_effect);
 				if (form2 != nullptr) {
-					//obj->StopEffect(form2);
-					REL::Relocation<void (*)(RE::BGSPackageDataBool*, RE::TESObjectREFR*, RE::TESEffectShader*)> StopEffect{ RELOCATION_ID(40381, 41395) };
-					StopEffect(reinterpret_cast<RE::BGSPackageDataBool*>(RELOCATION_ID(514167, 400315).address()), obj, form2);
+					REL::Relocation<void (*)(RE::ProcessLists*, RE::TESObjectREFR*, RE::TESEffectShader*)> StopEffect{ RELOCATION_ID(40381, 41395) };
+					StopEffect(RE::ProcessLists::GetSingleton(), obj, form2);
 				}
 			}
 
@@ -2875,9 +2869,8 @@ namespace BetterTelekinesis
 			if (normal_sword_effect != 0) {
 				auto form2 = RE::TESForm::LookupByID<RE::TESEffectShader>(normal_sword_effect);
 				if (form2 != nullptr) {
-					//obj->StopEffect(form2);
-					REL::Relocation<void (*)(RE::BGSPackageDataBool*, RE::TESObjectREFR*, RE::TESEffectShader*)> StopEffect{ RELOCATION_ID(40381, 41395) };
-					StopEffect(reinterpret_cast<RE::BGSPackageDataBool*>(RELOCATION_ID(514167, 400315).address()), obj, form2);
+					REL::Relocation<void (*)(RE::ProcessLists*, RE::TESObjectREFR*, RE::TESEffectShader*)> StopEffect{ RELOCATION_ID(40381, 41395) };
+					StopEffect(RE::ProcessLists::GetSingleton(), obj, form2);
 				}
 			}
 
@@ -2918,7 +2911,7 @@ namespace BetterTelekinesis
 		double now = Time;
 
 		for (int z = 0; z < 2; z++) {
-			auto dat = z == 0 ? normal_swords : ghost_swords;
+			auto& dat = z == 0 ? normal_swords : ghost_swords;
 
 			if (dat->forced_grab != nullptr) {
 				if (now - dat->forced_grab->CreateTime > 0.5) {
@@ -2952,8 +2945,6 @@ namespace BetterTelekinesis
 									}
 
 									root->local.translate.z -= first_TeleportZOffset;
-									RE::NiUpdateData data;
-									data.time = -1.0f;
 									//root->Update(data); Not working, instead manually update havok position
 
 									auto cobj = root->GetCollisionObject();
@@ -3018,8 +3009,7 @@ namespace BetterTelekinesis
 
 		double now = Time;
 		RE::RefHandle chosen = 0;
-		int ci = 0;
-		auto data = ghost ? ghost_swords : normal_swords;
+		auto& data = ghost ? ghost_swords : normal_swords;
 
 		// Barrage rate of fire?
 		if (ghost) {
@@ -3050,7 +3040,6 @@ namespace BetterTelekinesis
 					chosen = sword->Handle;
 					data->next_index = chosenIndex + 1;
 					inst = sword;
-					ci = chosenIndex;
 					break;
 				}
 			}
@@ -3067,7 +3056,6 @@ namespace BetterTelekinesis
 					chosen = sword->Handle;
 					data->next_index = i + 1;
 					inst = sword;
-					ci = i;
 					break;
 				}
 			}
@@ -3099,10 +3087,10 @@ namespace BetterTelekinesis
 
 		std::vector<float> go(6);
 		for (int i = 0; i < 3; i++) {
-			go[i] = sword_data::Temp2.y * i;
+			go[i] = sword_data::Temp2.y * static_cast<float>(i);
 		}
 		for (int i = 0; i < 3; i++) {
-			go[i + 3] = sword_data::Temp3.y * i;
+			go[i + 3] = sword_data::Temp3.y * static_cast<float>(i);
 		}
 
 		sword_data::Temp2.z += first_TeleportZOffset;
@@ -3178,15 +3166,9 @@ namespace BetterTelekinesis
 		bpos.y = hpos.y;
 		bpos.z = hpos.z;
 
+		sword_data::Temp1.x = 0.0f;
 		sword_data::Temp1.y = ghost ? static_cast<float>(Config::MagicSwordBarrage_PlaceDistance) : static_cast<float>(Config::MagicSwordBlast_PlaceDistance);
-		if (ghost) {
-			sword_data::Temp1.x = 0.0f;
-			sword_data::Temp1.z = 0.0f;
-		} else {
-			// Some offset?
-			sword_data::Temp1.x = 0.0f;
-			sword_data::Temp1.z = 0.0f;
-		}
+		sword_data::Temp1.z = 0.0f;
 
 		sword_data::Temp2 = Util::Translate(camWt, sword_data::Temp1);
 
@@ -3262,9 +3244,6 @@ namespace BetterTelekinesis
 
 		return true;
 	}
-
-	sword_data* const BetterTelekinesisPlugin::normal_swords = new sword_data();
-	sword_data* const BetterTelekinesisPlugin::ghost_swords = new sword_data();
 
 	int BetterTelekinesisPlugin::ShouldLaunchObjectNow(RE::ActiveEffect* ef)
 	{
@@ -3363,7 +3342,7 @@ namespace BetterTelekinesis
 		return true;
 	}
 
-	void BetterTelekinesisPlugin::OnFailPickTelekinesisTarget(RE::EffectSetting* efs, const bool failBecauseAlreadyMax)
+	void BetterTelekinesisPlugin::OnFailPickTelekinesisTarget(const RE::EffectSetting* efs, const bool failBecauseAlreadyMax)
 	{
 		if (efs == nullptr || failBecauseAlreadyMax) {
 			return;
@@ -3874,141 +3853,62 @@ namespace BetterTelekinesis
 
 	void leveled_list_helper::FindLeveledLists(const schools school, const levels level, std::vector<RE::TESLeveledList*>& all, std::vector<RE::TESLeveledList*>& one)
 	{
-		switch (level) {
-		case levels::novice:
+		struct LevelBase
+		{
+			RE::FormID all = 0;
+			RE::FormID one = 0;
+		};
+
+		// [level][school] = {all, one}
+		static constexpr std::pair<RE::FormID, RE::FormID> schoolEntries[4][5] = {
 			{
-				AddLeveledList(all, 0xA297A);
-				AddLeveledList(one, 0x10FD8C);
+				{ 0x10F64E, 0x9E2B0 },  
+				{ 0x10F64F, 0x9E2B1 },  
+				{ 0x10F650, 0x9E2B2 },  
+				{ 0x10F651, 0x9E2B3 }, 
+				{ 0x10F652, 0x9E2B4 }
+			},
+			{ { 0xA297D, 0xA272A },
+				{ 0xA297E, 0xA272B },
+				{ 0xA297F, 0xA272C },
+				{ 0xA2980, 0xA272D },
+				{ 0xA2981, 0xA272E } },
+			{ { 0xA298C, 0xA2735 },
+				{ 0xA298D, 0xA2730 },
+				{ 0xA298E, 0xA2731 },
+				{ 0xA298F, 0xA2732 },
+				{ 0xA2990, 0xA2734 } },
+			{ { 0xA2982, 0xA272F },
+				{ 0xA2983, 0xA2736 },
+				{ 0xA2984, 0xA2737 },
+				{ 0xA2985, 0xA2738 },
+				{ 0xA2986, 0xA2739 } }
+		};
 
-				switch (school) {
-				case schools::alteration:
-					AddLeveledList(all, 0x10F64E);
-					AddLeveledList(one, 0x9E2B0);
-					break;
+		static constexpr LevelBase levelBases[4] = {
+			{ .all = 0xA297A, .one = 0x10FD8C },
+			{ .all = 0x10523F, .one = 0x10FD8D },
+			{ .all = 0, .one = 0x10FCF0 },
+			{ .all = 0, .one = 0x10FCF1 },
+		};
 
-				case schools::conjuration:
-					AddLeveledList(all, 0x10F64F);
-					AddLeveledList(one, 0x9E2B1);
-					break;
+		int levelIdx = static_cast<int>(level);
+		int schoolIdx = static_cast<int>(school);
 
-				case schools::destruction:
-					AddLeveledList(all, 0x10F650);
-					AddLeveledList(one, 0x9E2B2);
-					break;
+		if (level == levels::master) {
+			levelIdx = static_cast<int>(levels::expert);
+		}
 
-				case schools::illusion:
-					AddLeveledList(all, 0x10F651);
-					AddLeveledList(one, 0x9E2B3);
-					break;
+		const auto& [allBaseEntry, oneBaseEntry] = levelBases[levelIdx];
+		AddLeveledList(all, allBaseEntry);
+		AddLeveledList(one, oneBaseEntry);
 
-				case schools::restoration:
-					AddLeveledList(all, 0x10F652);
-					AddLeveledList(one, 0x9E2B4);
-					break;
-				}
-			}
-			break;
-
-		case levels::apprentice:
-			{
-				AddLeveledList(all, 0x10523F);
-				AddLeveledList(one, 0x10FD8D);
-
-				switch (school) {
-				case schools::alteration:
-					AddLeveledList(all, 0xA297D);
-					AddLeveledList(one, 0xA272A);
-					break;
-
-				case schools::conjuration:
-					AddLeveledList(all, 0xA297E);
-					AddLeveledList(one, 0xA272B);
-					break;
-
-				case schools::destruction:
-					AddLeveledList(all, 0xA297F);
-					AddLeveledList(one, 0xA272C);
-					break;
-
-				case schools::illusion:
-					AddLeveledList(all, 0xA2980);
-					AddLeveledList(one, 0xA272D);
-					break;
-
-				case schools::restoration:
-					AddLeveledList(all, 0xA2981);
-					AddLeveledList(one, 0xA272E);
-					break;
-				}
-			}
-			break;
-
-		case levels::adept:
-			{
-				AddLeveledList(one, 0x10FCF0);
-
-				switch (school) {
-				case schools::alteration:
-					AddLeveledList(all, 0xA298C);
-					AddLeveledList(one, 0xA2735);
-					break;
-
-				case schools::conjuration:
-					AddLeveledList(all, 0xA298D);
-					AddLeveledList(one, 0xA2730);
-					break;
-
-				case schools::destruction:
-					AddLeveledList(all, 0xA298E);
-					AddLeveledList(one, 0xA2731);
-					break;
-
-				case schools::illusion:
-					AddLeveledList(all, 0xA298F);
-					AddLeveledList(one, 0xA2732);
-					break;
-
-				case schools::restoration:
-					AddLeveledList(all, 0xA2990);
-					AddLeveledList(one, 0xA2734);
-					break;
-				}
-			}
-			break;
-
-		case levels::expert:
-		case levels::master:  // add master to expert because they are treated as special by game and don't show up in normal vendors
-			{
-				AddLeveledList(one, 0x10FCF1);
-
-				switch (school) {
-				case schools::alteration:
-					AddLeveledList(all, 0xA2982);
-					AddLeveledList(one, 0xA272F);
-					break;
-
-				case schools::conjuration:
-					AddLeveledList(all, 0xA2983);
-					AddLeveledList(one, 0xA2736);
-					break;
-
-				case schools::destruction:
-					AddLeveledList(all, 0xA2984);
-					AddLeveledList(one, 0xA2737);
-					break;
-
-				case schools::illusion:
-					AddLeveledList(all, 0xA2985);
-					AddLeveledList(one, 0xA2738);
-					break;
-
-				case schools::restoration:
-					AddLeveledList(all, 0xA2986);
-					AddLeveledList(one, 0xA2739);
-					break;
-				}
-			}
-			break;
+		const auto& [allSchoolEntry, oneSchoolEntry] = schoolEntries[levelIdx][schoolIdx];
+		if (allSchoolEntry != 0) {
+			AddLeveledList(all, allSchoolEntry);
+		}
+		if (oneSchoolEntry != 0) {
+			AddLeveledList(one, oneSchoolEntry);
 		}
 	}
 

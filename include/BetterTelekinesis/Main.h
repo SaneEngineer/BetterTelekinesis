@@ -1033,7 +1033,6 @@ namespace BetterTelekinesis
 
 		static void StopSwordEffect(RE::TESObjectREFR* obj, bool ghost);
 
-	public:
 		static void ReturnSwordToPlace(RE::TESObjectREFR* obj);
 
 		static float first_TeleportZOffset;
@@ -1044,8 +1043,8 @@ namespace BetterTelekinesis
 
 		static bool CalculateSwordPlacePosition(float extraRadiusOfSword, bool forcePlaceInBadPosition, bool ghost);
 
-		static sword_data* const normal_swords;
-		static sword_data* const ghost_swords;
+		static inline auto normal_swords = std::make_shared<sword_data>();
+		static inline auto ghost_swords = std::make_shared<sword_data>();
 
 		static int ShouldLaunchObjectNow(RE::ActiveEffect* ef);
 
@@ -1064,7 +1063,6 @@ namespace BetterTelekinesis
 
 	class find_nearest_node_helper final
 	{
-	private:
 		static bool inited;
 
 		inline static RE::NiPoint3 Begin;
