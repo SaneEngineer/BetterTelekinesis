@@ -1354,7 +1354,7 @@ namespace BetterTelekinesis
 
 	void BetterTelekinesisPlugin::DisarmActor(RE::Actor* who)
 	{
-		if (who == nullptr || who->IsPlayer()) {
+		if (who == nullptr || who->IsPlayerRef()) {
 			return;
 		}
 
