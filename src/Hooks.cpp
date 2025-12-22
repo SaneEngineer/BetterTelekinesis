@@ -1,6 +1,4 @@
 #include "BetterTelekinesis/Main.h"
-#include "Shared/Utility/Assembly.h"
-#include "Shared/Utility/Memory.h"
 
 using namespace Xbyak;
 namespace BetterTelekinesis
@@ -2033,7 +2031,7 @@ namespace BetterTelekinesis
 		patch2.ready();
 
 		trampoline.write_branch<5>(addr, trampoline.allocate(patch2));
-		Utility::Memory::SafeWrite(addr + 5, Utility::Assembly::NoOperation2);
+		REL::safe_write(addr + 0x5, REL::NOP2, 2);
 
 		addr = RELOCATION_ID(34259, 35046).address();
 		// Telekinesis apply begin.
@@ -2255,7 +2253,7 @@ namespace BetterTelekinesis
 		trampoline.write_branch<5>(addr, trampoline.allocate(patch8));
 
 		if (REL::Module::IsVR()) {
-			Utility::Memory::SafeWrite(addr + 0x5, Utility::Assembly::NoOperation3);
+			REL::safe_write(addr + 0x5, REL::NOP3, 3);
 		}
 
 		addr = RELOCATION_ID(34260, 35047).address() + REL::Relocate(0x70B3 - 0x6E40, 0x305, 0x32A);
