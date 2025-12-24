@@ -143,7 +143,7 @@ namespace Util
 		return result;
 	}
 
-	RE::NiPoint3 viewMatrixToTranslate(const glm::mat4& matrix)
+	RE::NiPoint3 ViewMatrixToTranslate(const glm::mat4& matrix)
 	{
 		RE::NiPoint3 result = RE::NiPoint3();
 		result.x = matrix[3][0];
@@ -176,6 +176,49 @@ namespace Util
 		euler.z = euler.z * -1;
 
 		return euler;
+	}
+
+	#pragma warning(push)
+#pragma warning(disable: 4100)
+	void WriteFloat(const uintptr_t SE_id, const uintptr_t AE_id, const float value)
+	{
+		if (value < 0.0f)
+			return;
+		Memory::Internal::write<float>(RELOCATION_ID(SE_id, AE_id).address() + REL::Relocate(8, 8), value);
+	}
+
+	void WriteFloatMult(const uintptr_t SE_id, const uintptr_t AE_id, const float value)
+	{
+		if (value == 1.0f)
+			return;
+		auto prev = Memory::Internal::read<float>(RELOCATION_ID(SE_id, AE_id).address() + REL::Relocate(8, 8));
+		Memory::Internal::write<float>(RELOCATION_ID(SE_id, AE_id).address() + REL::Relocate(8, 8), value * prev);
+	}
+#pragma warning(pop)
+
+	bool FindCollisionNode(RE::NiNode* root, const int depth)
+	{
+		if (root == nullptr) {
+			return false;
+		}
+
+		if (root->collisionObject != nullptr) {
+			return true;
+		}
+
+		if (depth < 4) {
+			auto& chls = root->GetChildren();
+			if (chls.empty()) {
+				for (auto& ch : chls) {
+					auto cn = ch->AsNode();
+					if (cn != nullptr && FindCollisionNode(cn, depth + 1)) {
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 
 	CachedFormList::CachedFormList() = default;
@@ -284,4 +327,5 @@ namespace Util
 	{
 		return this->Forms;
 	}
+
 }

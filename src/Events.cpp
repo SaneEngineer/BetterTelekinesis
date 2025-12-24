@@ -23,7 +23,7 @@ namespace BetterTelekinesis
 				if (buttonEvent->device == RE::INPUT_DEVICE::kKeyboard) {
 					if (Config::DontLaunchIfRunningOutOfMagicka || Config::LaunchIsHotkeyInstead || Config::ThrowActorDamage > 0.0f) {
 						if (key == static_cast<unsigned>(Config::AbortTelekinesisHotkey)) {
-							BetterTelekinesisPlugin::_try_drop_now();
+							BetterTelekinesisPlugin::TryDropNow();
 						}
 					}
 				}

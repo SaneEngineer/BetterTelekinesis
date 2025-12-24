@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CasualLibrary.hpp"
+
 namespace Util
 {
 	std::optional<bool> GetGameSettingBool(const std::string a_name);
@@ -34,9 +36,15 @@ namespace Util
 
 	glm::mat3 ViewMatrixToRotationMatrix(const glm::mat4& matrix);
 
-	RE::NiPoint3 viewMatrixToTranslate(const glm::mat4& matrix);
+	RE::NiPoint3 ViewMatrixToTranslate(const glm::mat4& matrix);
 
 	RE::NiPoint3 NiQuarterionToEulerXYZ(const RE::NiQuaternion& q);
+
+	void WriteFloat(uintptr_t SE_id, uintptr_t AE_id, float value);
+
+	void WriteFloatMult(uintptr_t SE_id, uintptr_t AE_id, float value);
+
+	bool FindCollisionNode(RE::NiNode* root, int depth = 0);
 
 	class CachedFormList final
 	{
