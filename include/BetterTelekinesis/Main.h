@@ -1055,7 +1055,7 @@ namespace BetterTelekinesis
 		static bool CastingLeftHandVR();
 	};
 
-	class find_nearest_node_helper final
+	class FindNearestNodeHelper final
 	{
 		static inline bool inited = false;
 
@@ -1072,14 +1072,14 @@ namespace BetterTelekinesis
 		static RE::NiNode* FindBestNodeInCrosshair(RE::NiNode* root);
 
 	private:
-		class temp_calc final
+		class tempCalc final
 		{
 		public:
 			RE::NiNode* best = nullptr;
 			float dist = 0;
 		};
 
-		static void ExploreCalc(const RE::NiNode* current, temp_calc* state);
+		static void ExploreCalc(const RE::NiNode* current, tempCalc* state);
 
 		static float GetDistance(const RE::NiNode* n);
 	};

@@ -4,23 +4,23 @@
 
 namespace Util
 {
-	std::optional<bool> GetGameSettingBool(const std::string a_name);
+	std::optional<bool> GetGameSettingBool(std::string a_name);
 
-	std::optional<float> GetGameSettingFloat(const std::string a_name);
+	std::optional<float> GetGameSettingFloat(std::string a_name);
 
-	std::optional<int> GetGameSettingInt(const std::string a_name);
+	std::optional<int> GetGameSettingInt(std::string a_name);
 
-	std::optional<std::string> GetGameSettingString(const std::string a_name);
+	std::optional<std::string> GetGameSettingString(std::string a_name);
 
-	void SetGameSettingBool(const std::string a_name, bool a_value);
+	void SetGameSettingBool(std::string a_name, bool a_value);
 
-	void SetGameSettingFloat(const std::string a_name, float a_value);
+	void SetGameSettingFloat(std::string a_name, float a_value);
 
-	void SetGameSettingInt(const std::string a_name, int a_value);
+	void SetGameSettingInt(std::string a_name, int a_value);
 
-	void SetGameSettingString(const std::string a_name, std::string a_value);
+	void SetGameSettingString(std::string a_name, std::string a_value);
 
-	RE::NiPoint3 Translate(const RE::NiTransform& transform, const RE::NiPoint3 amount);
+	RE::NiPoint3 Translate(const RE::NiTransform& transform, RE::NiPoint3 amount);
 
 	RE::NiPoint3 GetEulerAngles(const RE::NiMatrix3& rotate);
 
@@ -57,7 +57,7 @@ namespace Util
 	public:
 		static CachedFormList* TryParse(const std::string& input, std::string settingNameForLog, bool warnOnMissingForm = true, bool dontWriteAnythingToLog = false);
 
-		bool Contains(RE::TESForm* form);
+		bool Contains(const RE::TESForm* form);
 
 		bool Contains(unsigned int formId);
 
@@ -91,7 +91,7 @@ namespace Util
 		};
 	};
 
-	// Function object for case insensitive comparison
+	// Function object for case-insensitive comparison
 	struct case_insensitive_compare
 	{
 		case_insensitive_compare() {}
@@ -121,7 +121,7 @@ namespace Util
 	};
 	struct StringHelpers
 	{
-		template <typename Range, typename Value = typename Range::value_type>
+		template <typename Range, typename Value = Range::value_type>
 		static std::string Join(Range const& elements, const char* const delimiter)
 		{
 			std::ostringstream os;

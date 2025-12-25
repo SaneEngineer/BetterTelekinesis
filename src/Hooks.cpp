@@ -414,11 +414,11 @@ namespace BetterTelekinesis
 
 	static RE::NiAVObject* GetNearestActorHelper(const RE::TESObjectREFR* obj)
 	{
-		if (obj != nullptr) {
+		if (obj != nullptr && !obj->IsPlayerRef()) {
 			auto root = obj->Get3D();
 			if (root != nullptr) {
 				if (Config::GrabActorNodeNearest) {
-					auto sel = find_nearest_node_helper::FindBestNodeInCrosshair(root->AsNode());
+					auto sel = FindNearestNodeHelper::FindBestNodeInCrosshair(root->AsNode());
 					if (sel != nullptr) {
 						logger::debug(fmt::runtime("Picked up by " + std::string(sel->name.c_str())));
 
@@ -635,7 +635,6 @@ namespace BetterTelekinesis
 
 			if (Config::GrabActorNodeNearest || !grabActorNodes.empty()) {
 				addr = RELOCATION_ID(33826, 34618).address();
-				//Memory::WriteHook(new HookParameters(){ Address = addr, IncludeLength = 0, ReplaceLength = 6, Before = [&](std::any ctx) {
 				struct Patch3 : CodeGenerator
 				{
 					Patch3(std::uintptr_t a_func, uintptr_t a_target)
@@ -778,7 +777,7 @@ namespace BetterTelekinesis
 		Util::WriteFloatMult(506155, 375987, static_cast<float>(Config::ObjectHoldDistance));
 		Util::WriteFloatMult(506194, 376046, static_cast<float>(Config::ActorHoldDistance));
 
-		find_nearest_node_helper::Init();
+		FindNearestNodeHelper::Init();
 
 		if (!Config::TelekinesisSpells.empty()) {
 			Spells = Util::CachedFormList::TryParse(Config::TelekinesisSpells, "BetterTelekinesis", "TelekinesisSpells", false);
@@ -3516,7 +3515,7 @@ namespace BetterTelekinesis
 		return Config::MagicSword_RemoveDelay;
 	}
 
-	void find_nearest_node_helper::Init()
+	void FindNearestNodeHelper::Init()
 	{
 		inited = true;
 
@@ -3532,7 +3531,7 @@ namespace BetterTelekinesis
 		temp1.z = 0.0f;
 	}
 
-	RE::NiNode* find_nearest_node_helper::FindBestNodeInCrosshair(RE::NiNode* root)
+	RE::NiNode* FindNearestNodeHelper::FindBestNodeInCrosshair(RE::NiNode* root)
 	{
 		if (!inited) {
 			return nullptr;
@@ -3555,7 +3554,7 @@ namespace BetterTelekinesis
 
 		end = Util::Translate(wt, temp1);
 
-		auto r = new temp_calc();
+		auto r = new tempCalc();
 		r->best = root;
 		r->dist = GetDistance(root);
 
@@ -3566,7 +3565,7 @@ namespace BetterTelekinesis
 		return ret;
 	}
 
-	void find_nearest_node_helper::ExploreCalc(const RE::NiNode* current, temp_calc* state)
+	void FindNearestNodeHelper::ExploreCalc(const RE::NiNode* current, tempCalc* state)
 	{
 		auto& arr = current->GetChildren();
 		if (arr.empty()) {
@@ -3612,7 +3611,7 @@ namespace BetterTelekinesis
 		}
 	}
 
-	float find_nearest_node_helper::GetDistance(const RE::NiNode* n)
+	float FindNearestNodeHelper::GetDistance(const RE::NiNode* n)
 	{
 		if (auto np = n->parent; np == nullptr) {
 			return 999999.0f;

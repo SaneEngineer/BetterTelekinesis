@@ -11,7 +11,7 @@ namespace Util
 
 	RE::NiPoint3 Translate(const RE::NiTransform& transform, const RE::NiPoint3 amount)
 	{
-		RE::NiPoint3 result = RE::NiPoint3();
+		RE::NiPoint3 result;
 
 		auto a = glm::vec3{ amount.x, amount.y, amount.z };
 		auto m = &transform.rotate.entry[0][0];
@@ -25,7 +25,7 @@ namespace Util
 
 	RE::NiPoint3 GetEulerAngles(const RE::NiMatrix3& rotate)
 	{
-		auto result = RE::NiPoint3();
+		RE::NiPoint3 result;
 		if (std::abs(rotate.entry[0][2] + 1.0f) < std::numeric_limits<float>::denorm_min()) {
 			result.x = 0.0f;
 			result.y = RE::NI_HALF_PI;
@@ -51,7 +51,7 @@ namespace Util
 
 	RE::NiPoint3 GetEulerAngles2(const RE::NiMatrix3& rotate)
 	{
-		auto result = RE::NiPoint3();
+		RE::NiPoint3 result;
 		if (rotate.entry[0][2] < 1.0f) {
 			if (rotate.entry[0][2] > -1.0f) {
 				result.y = std::asin(rotate.entry[0][2]);
@@ -145,7 +145,7 @@ namespace Util
 
 	RE::NiPoint3 ViewMatrixToTranslate(const glm::mat4& matrix)
 	{
-		RE::NiPoint3 result = RE::NiPoint3();
+		RE::NiPoint3 result;
 		result.x = matrix[3][0];
 		result.y = matrix[3][1];
 		result.z = matrix[3][2];
@@ -156,20 +156,20 @@ namespace Util
 	{
 		RE::NiPoint3 euler;
 
-		const double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-		const double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-		euler.x = std::atan2(sinr_cosp, cosr_cosp);
+		const float sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+		const float cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+		euler.x = std::atan2f(sinr_cosp, cosr_cosp);
 
 		// Pitch (y-axis rotation)
-		if (const double sinp = 2 * (q.w * q.y - q.z * q.x); std::abs(sinp) >= 1)
+		if (const float sinp = 2 * (q.w * q.y - q.z * q.x); std::abs(sinp) >= 1)
 			euler.y = std::copysign(glm::pi<float>() / 2, sinp);
 		else
-			euler.y = std::asin(sinp);
+			euler.y = std::asinf(sinp);
 
 		// Yaw (z-axis rotation)
-		const double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-		const double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-		euler.z = std::atan2(siny_cosp, cosy_cosp);
+		const float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+		const float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+		euler.z = std::atan2f(siny_cosp, cosy_cosp);
 
 		euler.x = euler.x * -1;
 		//euler.y = euler.y;
@@ -310,7 +310,7 @@ namespace Util
 		return ls;
 	}
 
-	bool CachedFormList::Contains(RE::TESForm* form)
+	bool CachedFormList::Contains(const RE::TESForm* form)
 	{
 		if (form == nullptr)
 			return false;
