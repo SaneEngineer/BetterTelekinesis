@@ -1,0 +1,907 @@
+{
+	"modName": "BetterTelekinesis",
+	"displayName": "Better Telekinesis",
+	"minMcmVersion": 9,
+	"cursorFillMode": "topToBottom",
+	"pages": [{
+		"pageDisplayName": "$BetterThirdPersonSelection_GeneralPage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_GeneralSettings_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bIsEnabledInFirstPerson:General",
+				"text": "$BetterThirdPersonSelection_IsEnabledInFirstPerson_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsEnabledInFirstPerson_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsEnabledInThirdPerson:General",
+				"text": "$BetterThirdPersonSelection_IsEnabledInThirdPerson_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsEnabledInThirdPerson_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsEnabledOnHorseBack:General",
+				"text": "$BetterThirdPersonSelection_IsEnabledOnHorseBack_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsEnabledOnHorseBack_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsEnabledInCombat:General",
+				"text": "$BetterThirdPersonSelection_IsEnabledInCombat_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsEnabledInCombat_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},		
+			
+			{
+				"id": "bIsEnabledWithWeaponsDrawn:General",
+				"text": "$BetterThirdPersonSelection_IsEnabledWithWeaponsDrawn_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsEnabledWithWeaponsDrawn_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},		
+			
+			{
+				"text": "$BetterThirdPersonSelection_ControlSettings_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bEnableObjectCycle:General",
+				"text": "$BetterThirdPersonSelection_EnableObjectCycle_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_EnableObjectCycle_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bEnableContinuousObjectCycle:General",
+				"text": "$BetterThirdPersonSelection_EnableContinuousObjectCycle_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_EnableContinuousObjectCycle_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "iObjectCycleModifierKey:General",
+				"text": "$BetterThirdPersonSelection_ObjectCycleModifierKey_OptionText",
+				"type": "keymap",
+				"ignoreConflicts": true,
+				"help": "$BetterThirdPersonSelection_ObjectCycleModifierKey_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingInt"
+				}
+			},	
+			
+			{
+				"id": "iCycleUpKey:General",
+				"text": "$BetterThirdPersonSelection_ObjectCycleUpKey_OptionText",
+				"type": "keymap",
+				"ignoreConflicts": true,
+				"help": "$BetterThirdPersonSelection_ObjectCycleUpKey_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingInt"
+				}
+			},	
+			
+			{
+				"id": "iCycleDownKey:General",
+				"text": "$BetterThirdPersonSelection_ObjectCycleDownKey_OptionText",
+				"type": "keymap",
+				"ignoreConflicts": true,
+				"help": "$BetterThirdPersonSelection_ObjectCycleDownKey_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingInt"
+				}
+			},
+			
+			{
+				"id": "iCycleDelayMS:General",
+				"text": "$BetterThirdPersonSelection_CycleDelayMS_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_CycleDelayMS_InfoText",
+				"valueOptions": {
+					"min": 0,
+					"max": 200,
+					"step": 5,
+					"formatString": "{0}",
+					"sourceType": "ModSettingInt"
+				}
+			},
+			
+			{
+				"text": "$BetterThirdPersonSelection_SelectionRanges_HeaderText",
+				"type": "header",
+				"position": 1
+			},
+			
+			{
+				"id": "fMaxAngleDif:General",
+				"text": "$BetterThirdPersonSelection_MaxAngleDif_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_MaxAngleDif_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 2.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fMaxAngleDif_HorseBack:General",
+				"text": "$BetterThirdPersonSelection_MaxAngleDif_HorseBack_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_MaxAngleDif_HorseBack_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 2.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fMaxInteractionRange:General",
+				"text": "$BetterThirdPersonSelection_MaxInteractionRange_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_MaxInteractionRange_InfoText",
+				"valueOptions": {
+					"min": 40.0,
+					"max": 1000.0,
+					"step": 5.0,
+					"formatString": "{1}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fMaxInteractionRange_HorseBack:General",
+				"text": "$BetterThirdPersonSelection_MaxInteractionRange_HorseBack_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_MaxInteractionRange_HorseBack_InfoText",
+				"valueOptions": {
+					"min": 175.0,
+					"max": 1000.0,
+					"step": 5.0,
+					"formatString": "{1}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"text": "$BetterThirdPersonSelection_HoldToDismount_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bIsHoldToDismountEnabled:General",
+				"text": "$BetterThirdPersonSelection_IsHoldToDismountEnabled_HorseBack_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsHoldToDismountEnabled_HorseBack_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "fHoldToDismountTime:General",
+				"text": "$BetterThirdPersonSelection_HoldToDismountTime_HorseBack_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_HoldToDismountTime_HorseBack_InfoText",
+				"valueOptions": {
+					"min": 0.1,
+					"max": 5.0,
+					"step": 0.1,
+					"formatString": "{1}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fHoldToDismountMinTime:General",
+				"text": "$BetterThirdPersonSelection_HoldToDismountMinTime_HorseBack_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_HoldToDismountMinTime_HorseBack_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 5.0,
+					"step": 0.1,
+					"formatString": "{1}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+
+			{
+				"text": "$BetterThirdPersonSelection_FilterSettings_HeaderText",
+				"type": "header"
+			},
+
+			{
+				"id": "bEnableFiltersForNativeSelection:General",
+				"text": "$BetterThirdPersonSelection_EnableFiltersForNativeSelection_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_EnableFiltersForNativeSelection_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			}
+		]
+	},
+
+	{
+		"pageDisplayName": "$BetterThirdPersonSelection_WidgetPage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_WidgetSettings_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bIsWidget3DEnabledInFirstPerson:Widgets",
+				"text": "$BetterThirdPersonSelection_IsWidget3DEnabledInFirstPerson_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsWidget3DEnabledInFirstPerson_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsWidget3DEnabledInThirdPerson:Widgets",
+				"text": "$BetterThirdPersonSelection_IsWidget3DEnabledInThirdPerson_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsWidget3DEnabledInThirdPerson_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},	
+			
+			{
+				"id": "bIsWidget3DEnabledOnHorseBack:Widgets",
+				"text": "$BetterThirdPersonSelection_IsWidget3DEnabledOnHorseBack_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsWidget3DEnabledOnHorseBack_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},	
+			
+			{
+				"id": "bIsWidget3DEnabledInCombat:Widgets",
+				"text": "$BetterThirdPersonSelection_IsWidget3DEnabledInCombat_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsWidget3DEnabledInCombat_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},		
+			
+			{
+				"id": "bIsWidget3DEnabledWithWeaponsDrawn:Widgets",
+				"text": "$BetterThirdPersonSelection_IsWidget3DEnabledWithWeaponsDrawn_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsWidget3DEnabledWithWeaponsDrawn_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"text": "$BetterThirdPersonSelection_WidgetStyleSettings_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bIsDividerEnabled:Widgets",
+				"text": "$BetterThirdPersonSelection_IsIsDividerEnabled_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsDividerEnabled_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsActivationButtonEnabled:Widgets",
+				"text": "$BetterThirdPersonSelection_IsActivationButtonEnabled_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsActivationButtonEnabled_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsItemInfoEnabled:Widgets",
+				"text": "$BetterThirdPersonSelection_IsItemInfoEnabled_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsItemInfoEnabled_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bIsDismountProgressCirlcleEnabled:Widgets",
+				"text": "$BetterThirdPersonSelection_IsDismountProgressCirlcleEnabled_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_IsDismountProgressCirlcleEnabled_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "fWidgetAlpha:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetAlpha_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetAlpha_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 100.0,
+					"step": 1.0,
+					"formatString": "{0}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+
+			{
+				"id": "fWidgetZOffset:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetZOffset_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetZOffset_InfoText",
+				"valueOptions": {
+					"min": -200.0,
+					"max": 200.0,
+					"step": 1.0,
+					"formatString": "{0}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+
+			{
+				"id": "fWidgetZOffsetFirstPerson:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetZOffsetFirstPerson_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetZOffsetFirstPerson_InfoText",
+				"valueOptions": {
+					"min": -200.0,
+					"max": 200.0,
+					"step": 1.0,
+					"formatString": "{0}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+
+			{
+				"id": "fWidgetZOffsetAdditionalNPC:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetZOffsetAdditionalNPC_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetZOffsetAdditionalNPC_InfoText",
+				"valueOptions": {
+					"min": -200.0,
+					"max": 200.0,
+					"step": 1.0,
+					"formatString": "{0}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"text": "$BetterThirdPersonSelection_WidgetSettings_HeaderText",
+				"type": "header",
+				"position": 1
+			},
+			
+			{
+				"id": "fWidgetSizeMin:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetSizeMin_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetSizeMin_InfoText",
+				"valueOptions": {
+					"min": 0.1,
+					"max": 5.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fWidgetSizeMax:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetSizeMax_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetSizeMax_InfoText",
+				"valueOptions": {
+					"min": 0.1,
+					"max": 5.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fWidgetSizeMin_HorseBack:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetSizeMin_HorseBack_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetSizeMin_HorseBack_InfoText",
+				"valueOptions": {
+					"min": 0.1,
+					"max": 5.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fWidgetSizeMax_HorseBack:Widgets",
+				"text": "$BetterThirdPersonSelection_WidgetSizeMax_HorseBack_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_WidgetSizeMax_HorseBack_InfoText",
+				"valueOptions": {
+					"min": 0.1,
+					"max": 5.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"text": "$BetterThirdPersonSelection_2DWidgetStyleSettings_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "fWidget2DSize:Widgets",
+				"text": "$BetterThirdPersonSelection_Widget2DSize_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_Widget2DSize_InfoText",
+				"valueOptions": {
+					"min": 0.1,
+					"max": 3.0,
+					"step": 0.1,
+					"formatString": "{1}",
+					"sourceType": "ModSettingFloat"
+				}
+			},			
+			
+			{
+				"id": "fWidget2DXPos:Widgets",
+				"text": "$BetterThirdPersonSelection_Widget2DXPos_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_Widget2DXPos_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 1.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},	
+			
+			{
+				"id": "fWidget2DYPos:Widgets",
+				"text": "$BetterThirdPersonSelection_Widget2DYPos_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_Widget2DYPos_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 1.0,
+					"step": 0.05,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fWidgetFadeInDelta:Widgets",
+				"text": "$BetterThirdPersonSelection_fWidgetFadeInDelta_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_fWidgetFadeInDelta_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 1.0,
+					"step": 0.01,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fWidgetFadeOutDelta:Widgets",
+				"text": "$BetterThirdPersonSelection_fWidgetFadeOutDelta_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_fWidgetFadeOutDelta_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 1.0,
+					"step": 0.01,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			}
+		]
+	},
+	
+	{
+		"pageDisplayName": "$BetterThirdPersonSelection_PriorityPage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_PriorityPage_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "fAngleMult:Priority",
+				"text": "$BetterThirdPersonSelection_AngleMult_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_AngleMult_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 10.0,
+					"step": 0.1,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fDistMult:Priority",
+				"text": "$BetterThirdPersonSelection_DistMult_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_DistMult_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 10.0,
+					"step": 0.1,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fTypemult:Priority",
+				"text": "$BetterThirdPersonSelection_TypeMult_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_TypeMult_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 10.0,
+					"step": 0.1,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fSpecificMult:Priority",
+				"text": "$BetterThirdPersonSelection_SpecificMult_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_SpecificMult_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 10.0,
+					"step": 0.1,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fValueMult:Priority",
+				"text": "$BetterThirdPersonSelection_ValueMult_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_ValueMult_InfoText",
+				"valueOptions": {
+					"min": 0.0,
+					"max": 10.0,
+					"step": 0.1,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "iMaxValue:Priority",
+				"text": "$BetterThirdPersonSelection_MaxValue_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_MaxValue_InfoText",
+				"valueOptions": {
+					"min": 1,
+					"max": 2000,
+					"step": 1,
+					"sourceType": "ModSettingInt"
+				}
+			},
+			
+			{
+				"id": "fNativeSelectionBonus:Priority",
+				"text": "$BetterThirdPersonSelection_NativeSelectionBonus_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_NativeSelectionBonus_InfoText",
+				"valueOptions": {
+					"min": -100.0,
+					"max": 100.0,
+					"step": 0.01,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fPreviousSelectionBonus:Priority",
+				"text": "$BetterThirdPersonSelection_PreviousSelectionBonus_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_PreviousSelectionBonus_InfoText",
+				"valueOptions": {
+					"min": -100.0,
+					"max": 100.0,
+					"step": 0.01,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fNPCSelectionBonus:Priority",
+				"text": "$BetterThirdPersonSelection_NPCSelectionBonus_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_NPCSelectionBonus_InfoText",
+				"valueOptions": {
+					"min": -100.0,
+					"max": 100.0,
+					"step": 0.01,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			}
+		]	
+	},
+	
+	{
+		"pageDisplayName": "$BetterThirdPersonSelection_PerformancePage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_PerformancePage_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "iNumTracesHorizontal:Performance",
+				"text": "$BetterThirdPersonSelection_NumTracesHorizontal_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_NumTracesHorizontal_InfoText",
+				"valueOptions": {
+					"min": 1,
+					"max": 10,
+					"step": 1,
+					"sourceType": "ModSettingInt"
+				}
+			},
+			
+			{
+				"id": "iNumTracesVertical:Performance",
+				"text": "$BetterThirdPersonSelection_NumTracesVertical_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_NumTracesVertical_InfoText",
+				"valueOptions": {
+					"min": 1,
+					"max": 10,
+					"step": 1,
+					"sourceType": "ModSettingInt"
+				}
+			}
+		]	
+	},
+
+	{
+		"pageDisplayName": "$BetterThirdPersonSelection_FilterPage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_FilterSettings_HeaderText",
+				"type": "header"
+			}
+		]
+	},
+
+	{
+		"pageDisplayName": "$BetterThirdPersonSelection_DebugPage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_DebugPage_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bDraw_RayTraces:Debug",
+				"text": "$BetterThirdPersonSelection_Draw_RayTraces_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_Draw_RayTraces_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bDraw_Bounds_Box:Debug",
+				"text": "$BetterThirdPersonSelection_Draw_Bounds_Box_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_Draw_Bounds_Box_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bDraw_Bounds_Sphere:Debug",
+				"text": "$BetterThirdPersonSelection_Draw_Bounds_Sphere_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_Draw_Bounds_Sphere_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bDraw_Bounds_MinMax:Debug",
+				"text": "$BetterThirdPersonSelection_Draw_Bounds_MinMax_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_Draw_Bounds_MinMax_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "fDebugDrawThickness:Debug",
+				"text": "$BetterThirdPersonSelection_DebugDrawThickness_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_DebugDrawThickness_InfoText",
+				"valueOptions": {
+					"min": 0.5,
+					"max": 20.0,
+					"step": 0.1,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"id": "fDebugDrawAlpha:Debug",
+				"text": "$BetterThirdPersonSelection_DebugDrawAlpha_OptionText",
+				"type": "slider",
+				"help": "$BetterThirdPersonSelection_DebugDrawAlpha_InfoText",
+				"valueOptions": {
+					"min": 0.01,
+					"max": 3.0,
+					"step": 0.01,
+					"formatString": "{2}",
+					"sourceType": "ModSettingFloat"
+				}
+			},
+			
+			{
+				"text": "$BetterThirdPersonSelection_AdditionalSettings_HeaderText",
+				"type": "header",
+				"position": 1
+			},
+			
+			{
+				"id": "bHotReloadConfig:Debug",
+				"text": "$BetterThirdPersonSelection_HotReloadConfig_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_HotReloadConfig_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+			
+			{
+				"id": "bShowFurnitureMarkers:Debug",
+				"text": "$BetterThirdPersonSelection_ShowFurnitureMarkers_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_ShowFurnitureMarkers_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			}
+		]
+	},
+	
+	{
+		"pageDisplayName": "$BetterThirdPersonSelection_CompatibilityPage",
+		"cursorFillMode": "topToBottom",
+		"content": [
+			{
+				"text": "$BetterThirdPersonSelection_CompatibilitySettings_HeaderText",
+				"type": "header"
+			},
+			
+			{
+				"id": "bAdjustMoreHudWidgets:Compatibility",
+				"text": "$BetterThirdPersonSelection_AdjustMoreHudWidgets_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_AdjustMoreHudWidgets_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			},
+
+			{
+				"id": "bAdjustQuickLootWidgets:Compatibility",
+				"text": "$BetterThirdPersonSelection_AdjustQuickLootWidgets_OptionText",
+				"type": "toggle",
+				"help": "$BetterThirdPersonSelection_AdjustQuickLootWidgets_InfoText",
+				"groupControl": 1,
+				"valueOptions": {
+					"sourceType": "ModSettingBool"
+				}
+			}
+		]
+	}
+	]
+}
