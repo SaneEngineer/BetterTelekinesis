@@ -37,6 +37,5 @@ build*/*
 out*/*
 cmake-build-debug/*
 external/CommonLibSSE-NG/*
-external/CasualLibrary/lib/*
 include/glm/*
 CmakeUserPresets.json

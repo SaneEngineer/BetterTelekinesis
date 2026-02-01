@@ -1,5 +1,6 @@
-#include "BetterTelekinesis/Main.h"
 #include "BetterTelekinesis/Events.h"
+#include "BetterTelekinesis/Main.h"
+#include "BetterTelekinesis/Papyrus.h"
 
 using namespace SKSE;
 using namespace SKSE::log;
@@ -79,6 +80,9 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 	}
 
 	logger::info("Game version : {}", a_skse->RuntimeVersion().string());
+
+	auto papyrus = SKSE::GetPapyrusInterface();
+	papyrus->Register(Papyrus::Register);
 
 	InitializeHooking();
 	InitializeMessaging();

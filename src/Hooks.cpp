@@ -664,7 +664,7 @@ namespace BetterTelekinesis
 		}
 
 		//Fix Telekinesis Launch Angle in VR
-		if (REL::Module::IsVR()) {
+		if (Config::FixLaunchAngleVR && REL::Module::IsVR()) {
 			addr = RELOCATION_ID(34250, 35052).address() + 0x1C4;
 			struct Patch4 : CodeGenerator
 			{
@@ -717,6 +717,8 @@ namespace BetterTelekinesis
 		if (Config::TelekinesisMaxObjects > 1) {
 			ApplyMultiTelekinesis();
 		}
+
+		origActorDamage = Config::HoldActorDamage;
 	}
 
 	void BetterTelekinesisPlugin::ForeachHeldHandle(const std::function<void(std::shared_ptr<HeldObjectData>)>& func)

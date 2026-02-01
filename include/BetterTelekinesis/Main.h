@@ -772,6 +772,9 @@ namespace BetterTelekinesis
 
 		inline static float reachSpell = 0.0f;
 
+		inline static bool actorDamageToggled = false;
+		inline static double origActorDamage = 0.0f;
+
 		class HeldObjectData final
 		{
 		public:

@@ -18,12 +18,26 @@ namespace BetterTelekinesis
 		if (a_event) {
 			auto event = *a_event;
 			auto buttonEvent = event ? event->AsButtonEvent() : nullptr;
-			if (buttonEvent) {
+			if (buttonEvent && (buttonEvent->IsPressed() || buttonEvent->IsDown())) {
 				auto key = buttonEvent->GetIDCode();
 				if (buttonEvent->device == RE::INPUT_DEVICE::kKeyboard) {
-					if (Config::DontLaunchIfRunningOutOfMagicka || Config::LaunchIsHotkeyInstead || Config::ThrowActorDamage > 0.0f) {
+					if (Config::AbortTelekinesisHotkeyEnabled) {
 						if (key == static_cast<unsigned>(Config::AbortTelekinesisHotkey)) {
 							BetterTelekinesisPlugin::TryDropNow();
+						}
+					} 
+					
+					if (Config::ActorDamageToggleEnabled) {
+						if (key == static_cast<unsigned>(Config::ToggleActorDamageHotkey)) {
+							logger::debug("Actor Damage Toggle Hotkey Pressed");
+							BetterTelekinesisPlugin::actorDamageToggled = !BetterTelekinesisPlugin::actorDamageToggled;
+							if (BetterTelekinesisPlugin::actorDamageToggled) {
+								logger::debug("Toggled Damage Off");
+								Config::HoldActorDamage = 0.0f;
+							} else {
+								logger::debug("Toggled Damage On");
+								Config::HoldActorDamage = BetterTelekinesisPlugin::origActorDamage;
+							}
 						}
 					}
 				}

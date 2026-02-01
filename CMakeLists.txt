@@ -144,16 +144,22 @@ if(BUILD_ZIP)
 	add_custom_target(build-time-make-directory ALL
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${ZIP_DIR}"
 		"${ZIP_DIR}/SKSE/Plugins/"
+		"${ZIP_DIR}/scripts/"
+		"${ZIP_DIR}/scripts/source/"
+		"${ZIP_DIR}/MCM/Config/BetterTelekinesis/"
+		"${ZIP_DIR}/interface/Translations/"
 	)
 
 	message("Copying mod into ${ZIP_DIR}.")
 	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> "${ZIP_DIR}/SKSE/Plugins/"
+		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> "${ZIP_DIR}/SKSE/Plugins/"
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/BetterTelekinesis.esp "${ZIP_DIR}"
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/scripts/DE_BT_MCMScript.pex "${ZIP_DIR}/scripts/"
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/scripts/source/DE_BT_MCMScript.psc "${ZIP_DIR}/scripts/source/"
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/MCM/Config/BetterTelekinesis/config.json "${ZIP_DIR}/MCM/Config/BetterTelekinesis/"
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/interface/Translations/BetterTelekinesis_ENGLISH.txt "${ZIP_DIR}/interface/Translations/"
 	)
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> "${ZIP_DIR}/SKSE/Plugins/")
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/BetterTelekinesis.esp "${ZIP_DIR}")
 
 	set(TARGET_ZIP "${PROJECT_NAME}_${PROJECT_VERSION}.7z")
 	message("Zipping ${ZIP_DIR} to ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_ZIP}.")
