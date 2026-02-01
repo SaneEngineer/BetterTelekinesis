@@ -412,35 +412,6 @@ namespace BetterTelekinesis
 		return std::max(fpick, BetterTelekinesisPlugin::reachSpell);
 	}
 
-	static RE::NiAVObject* GetNearestActorHelper(const RE::TESObjectREFR* obj)
-	{
-		if (obj != nullptr && !obj->IsPlayerRef()) {
-			auto root = obj->Get3D();
-			if (root != nullptr) {
-				if (Config::GrabActorNodeNearest) {
-					auto sel = FindNearestNodeHelper::FindBestNodeInCrosshair(root->AsNode());
-					if (sel != nullptr) {
-						logger::debug(fmt::runtime("Picked up by " + std::string(sel->name.c_str())));
-
-						return sel;
-					}
-
-					return root;
-				}
-
-				for (auto& x : BetterTelekinesisPlugin::grabActorNodes) {
-					if (auto node = root->GetObjectByName(x); node != nullptr) {
-						return node;
-					}
-				}
-
-				return root;
-			}
-		}
-
-		return nullptr;
-	}
-
 	static RE::NiNode* GetVRAimNodeHelper(RE::VR_DEVICE device)
 	{
 		auto plr = RE::PlayerCharacter::GetSingleton();
@@ -617,50 +588,6 @@ namespace BetterTelekinesis
 			// Don't allow spring to deactivate.
 			addr = RELOCATION_ID(61571, 62469).address() + REL::Relocate(0x9AE - 0x980, 0x2E);
 			REL::safe_fill(addr, 0x90, 2);
-		}
-
-		if (Config::GrabActorNodeNearest || (!Config::GrabActorNodePriority.empty() && Config::GrabActorNodePriority != "NPC Spine2 [Spn2]")) {
-			auto spl = Config::GrabActorNodeNearest ? std::vector<std::string>() : Util::StringHelpers::split(!Config::GrabActorNodePriority.empty() ? Config::GrabActorNodePriority : "", ';', true);
-			if (!spl.empty()) {
-				grabActorNodes = spl;
-			}
-
-			spl = !Config::GrabActorNodeNearest ? std::vector<std::string>() : Util::StringHelpers::split((!Config::GrabActorNodeExclude.empty() ? Config::GrabActorNodeExclude : ""), ';', true);
-			if (!spl.empty()) {
-				excludeActorNodes = std::unordered_set<std::string, Util::case_insensitive_unordered_set::hash>();
-				for (auto& x : spl) {
-					excludeActorNodes.insert(x);
-				}
-			}
-
-			if (Config::GrabActorNodeNearest || !grabActorNodes.empty()) {
-				addr = RELOCATION_ID(33826, 34618).address();
-				struct Patch3 : CodeGenerator
-				{
-					Patch3(std::uintptr_t a_func, uintptr_t a_target)
-					{
-						Label retnLabel;
-						Label funcLabel;
-
-						sub(rsp, 0x20);
-						call(ptr[rip + funcLabel]);
-						add(rsp, 0x20);
-
-						jmp(ptr[rip + retnLabel]);
-
-						L(funcLabel);
-						dq(a_func);
-
-						L(retnLabel);
-						dq(a_target + 0x6);
-					}
-				};
-				Patch3 patch3(reinterpret_cast<uintptr_t>(GetNearestActorHelper), addr);
-				patch3.ready();
-
-				trampoline.write_branch<6>(addr, trampoline.allocate(patch3));
-				Memory::Internal::write<uint8_t>(addr + 6, 0xC3, true);
-			}
 		}
 
 		//Fix Telekinesis Launch Angle in VR
@@ -3556,18 +3483,17 @@ namespace BetterTelekinesis
 
 		end = Util::Translate(wt, temp1);
 
-		auto r = new tempCalc();
+		auto r = std::make_shared<tempCalc>();
 		r->best = root;
 		r->dist = GetDistance(root);
 
 		ExploreCalc(root, r);
 
 		auto ret = r->best;
-		delete r;
 		return ret;
 	}
 
-	void FindNearestNodeHelper::ExploreCalc(const RE::NiNode* current, tempCalc* state)
+	void FindNearestNodeHelper::ExploreCalc(const RE::NiNode* current, std::shared_ptr<tempCalc> state)
 	{
 		auto& arr = current->GetChildren();
 		if (arr.empty()) {
@@ -3586,7 +3512,7 @@ namespace BetterTelekinesis
 
 			// fade node is stuff like weapon, shield, and they don't allow us to move them by it properly.
 
-			bool exclude = cn->AsNode() != nullptr;
+			bool exclude = cn->AsFadeNode() != nullptr;
 			if (!exclude) {
 				RE::COL_LAYER layer = cn->GetCollisionLayer();
 				if (layer == RE::COL_LAYER::kUnidentified) {

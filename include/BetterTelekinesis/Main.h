@@ -94,6 +94,35 @@ namespace BetterTelekinesis
 		static int GetQuadrant(float x, float y);
 	};
 
+	class FindNearestNodeHelper final
+	{
+		static inline bool inited = false;
+
+		inline static RE::NiPoint3 begin;
+		inline static RE::NiPoint3 end;
+		inline static RE::NiPoint3 temp1;
+		inline static RE::NiPoint3 temp2;
+		inline static RE::NiPoint3 temp3;
+		inline static RE::NiPoint3 temp4;
+
+	public:
+		static void Init();
+
+		static RE::NiNode* FindBestNodeInCrosshair(RE::NiNode* root);
+
+	private:
+		class tempCalc final
+		{
+		public:
+			RE::NiNode* best = nullptr;
+			float dist = 0;
+		};
+
+		static void ExploreCalc(const RE::NiNode* current, std::shared_ptr<tempCalc> state);
+
+		static float GetDistance(const RE::NiNode* n);
+	};
+
 	class BetterTelekinesisPlugin final
 	{
 	public:
@@ -707,6 +736,39 @@ namespace BetterTelekinesis
 				static inline REL::Relocation<decltype(thunk)> func;
 			};
 
+			struct GetSpineBone
+			{
+				static RE::NiAVObject* thunk(RE::Actor* a_actor)
+				{
+					if (a_actor != nullptr && !a_actor->IsPlayerRef()) {
+						auto root = a_actor->Get3D();
+						if (root != nullptr) {
+							if (Config::GrabActorNodeNearest) {
+								auto sel = FindNearestNodeHelper::FindBestNodeInCrosshair(root->AsNode());
+								if (sel != nullptr) {
+									logger::debug(fmt::runtime("Picked up by " + std::string(sel->name.c_str())));
+
+									return sel;
+								}
+
+								return root;
+							}
+
+							for (auto& x : BetterTelekinesisPlugin::grabActorNodes) {
+								if (auto node = root->GetObjectByName(x); node != nullptr) {
+									return node;
+								}
+							}
+
+							return root;
+						}
+					}
+
+					return nullptr;
+				}
+				static inline REL::Relocation<decltype(thunk)> func;
+			};
+
 			struct MainUpdate_Nullsub
 			{
 				static void thunk()
@@ -752,6 +814,24 @@ namespace BetterTelekinesis
 					} else {
 						stl::write_thunk_call<SeperateTelekinesis, 6>(RELOCATION_ID(39479, 40556).address() + REL::Relocate(0xC273 - 0xC0F0, 0x176, 0x223));
 					}
+				}
+
+				if (Config::GrabActorNodeNearest || (!Config::GrabActorNodePriority.empty() && Config::GrabActorNodePriority != "NPC Spine2 [Spn2]")) {
+					auto spl = Config::GrabActorNodeNearest ? std::vector<std::string>() : Util::StringHelpers::split(!Config::GrabActorNodePriority.empty() ? Config::GrabActorNodePriority : "", ';', true);
+					if (!spl.empty()) {
+						grabActorNodes = spl;
+					}
+
+					spl = !Config::GrabActorNodeNearest ? std::vector<std::string>() : Util::StringHelpers::split((!Config::GrabActorNodeExclude.empty() ? Config::GrabActorNodeExclude : ""), ';', true);
+					if (!spl.empty()) {
+						excludeActorNodes = std::unordered_set<std::string, Util::case_insensitive_unordered_set::hash>();
+						for (auto& x : spl) {
+							excludeActorNodes.insert(x);
+						}
+					}
+
+					stl::write_thunk_jump<GetSpineBone>(RELOCATION_ID(33826, 34618).address());
+					Memory::Internal::write<uint8_t>(RELOCATION_ID(33826, 34618).address() + 5, 0xC3, true);
 				}
 
 				bool marketplace = REL::Relocate(false, REL::Module::get().version() >= SKSE::RUNTIME_SSE_1_6_1130);
@@ -1056,35 +1136,6 @@ namespace BetterTelekinesis
 		static bool HasAnyNormalTelekInHand();
 
 		static bool CastingLeftHandVR();
-	};
-
-	class FindNearestNodeHelper final
-	{
-		static inline bool inited = false;
-
-		inline static RE::NiPoint3 begin;
-		inline static RE::NiPoint3 end;
-		inline static RE::NiPoint3 temp1;
-		inline static RE::NiPoint3 temp2;
-		inline static RE::NiPoint3 temp3;
-		inline static RE::NiPoint3 temp4;
-
-	public:
-		static void Init();
-
-		static RE::NiNode* FindBestNodeInCrosshair(RE::NiNode* root);
-
-	private:
-		class tempCalc final
-		{
-		public:
-			RE::NiNode* best = nullptr;
-			float dist = 0;
-		};
-
-		static void ExploreCalc(const RE::NiNode* current, tempCalc* state);
-
-		static float GetDistance(const RE::NiNode* n);
 	};
 
 	class LeveledListHelper final
