@@ -871,6 +871,8 @@ namespace BetterTelekinesis
 		static void ForeachHeldHandle(const std::function<void(std::shared_ptr<HeldObjectData>)>& func);
 
 	private:
+		static void UpdateAutoLearnSpells();
+
 		static float CalculateCurrentTelekinesisDamage(RE::PlayerCharacter* ptrPlr, RE::Actor* actorPtr);
 
 		static void OnLaunchActor(RE::Actor* actorPtr);
@@ -890,7 +892,6 @@ namespace BetterTelekinesis
 
 	private:
 		inline static uint64_t lastCheckedLearn = 0;
-		inline static uint64_t lastCheckedLearnTwo = 0;
 
 		static void ApplyTelekinesisSettings();
 

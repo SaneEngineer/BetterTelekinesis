@@ -197,111 +197,16 @@ namespace BetterTelekinesis
 
 		UpdateSwordEffects();
 
-		if (Config::AutoLearnTelekinesisVariants) {
-			auto prim = PrimarySpells;
-			if (prim == nullptr) {
-				return;
-			}
-
-			auto second = SecondarySpells;
-			if (second == nullptr) {
-				return;
-			}
-
-			auto now = GetTickCount64();
-			if (now - lastCheckedLearnTwo < 1000) {
-				return;
-			}
-
-			lastCheckedLearnTwo = now;
-
-			auto main = RE::Main::GetSingleton();
-			if (main == nullptr || !main->gameActive) {
-				return;
-			}
-
-			plr = RE::PlayerCharacter::GetSingleton();
-			if (plr == nullptr) {
-				return;
-			}
-
-			bool has = false;
-			for (auto form : prim->getAll()) {
-				auto sp = form->As<RE::SpellItem>();
-				if (sp == nullptr) {
-					continue;
-				}
-
-				if (plr->HasSpell(sp)) {
-					has = true;
-					break;
-				}
-			}
-
-			if (!has) {
-				return;
-			}
-
-			for (auto form : second->getAll()) {
-				auto sp = form->As<RE::SpellItem>();
-				if (sp == nullptr) {
-					continue;
-				}
-
-				if (!plr->HasSpell(sp)) {
-					plr->AddSpell(sp);
-				}
-			}
+		auto main = RE::Main::GetSingleton();
+		if (main == nullptr || !main->gameActive) {
+			return;
 		}
 
-		if (Config::AutoLearnTelekinesisSpell) {
-			auto spells = Spells;
-			if (spells == nullptr || spells->getAll().empty()) {
-				return;
-			}
-
-			auto now = GetTickCount64();
-			if (now - lastCheckedLearn < 1000) {
-				return;
-			}
-
-			lastCheckedLearn = now;
-
-			auto main = RE::Main::GetSingleton();
-			if (main == nullptr || !main->gameActive) {
-				return;
-			}
-
-			plr = RE::PlayerCharacter::GetSingleton();
-			if (plr == nullptr) {
-				return;
-			}
-
-			for (auto form : spells->getAll()) {
-				auto sp = form->As<RE::SpellItem>();
-				if (sp == nullptr) {
-					continue;
-				}
-
-				if (!plr->HasSpell(sp)) {
-					plr->AddSpell(sp);
-				}
-			}
-		}
+		UpdateAutoLearnSpells();
 
 		if (Config::HoldActorDamage > 0.0) {
-			auto main = RE::Main::GetSingleton();
-			if (main == nullptr || !main->gameActive) {
-				return;
-			}
-
 			diff = RE::Main::QFrameAnimTime();
 			if (diff <= 0.0f) {
-				return;
-			}
-
-			plr = RE::PlayerCharacter::GetSingleton();
-			if (plr == nullptr) {
 				return;
 			}
 
@@ -334,6 +239,77 @@ namespace BetterTelekinesis
 			});
 		}
 	}
+
+	void BetterTelekinesisPlugin::UpdateAutoLearnSpells()
+	{
+		auto plr = RE::PlayerCharacter::GetSingleton();
+
+		auto now = GetTickCount64();
+		if (now - lastCheckedLearn < 1000) {
+			return;
+		}
+
+		lastCheckedLearn = now;
+
+		if (Config::AutoLearnTelekinesisSpell) {
+			auto spells = Spells;
+			if (spells == nullptr || spells->getAll().empty()) {
+				return;
+			}
+
+			for (auto form : spells->getAll()) {
+				auto sp = form->As<RE::SpellItem>();
+				if (sp == nullptr) {
+					continue;
+				}
+
+				if (!plr->HasSpell(sp)) {
+					plr->AddSpell(sp);
+				}
+			}
+		}
+
+		if (Config::AutoLearnTelekinesisVariants) {
+			auto prim = PrimarySpells;
+			if (prim == nullptr) {
+				return;
+			}
+
+			auto second = SecondarySpells;
+			if (second == nullptr) {
+				return;
+			}
+
+			bool has = false;
+			for (auto form : prim->getAll()) {
+				auto sp = form->As<RE::SpellItem>();
+				if (sp == nullptr) {
+					continue;
+				}
+
+				if (plr->HasSpell(sp)) {
+					has = true;
+					break;
+				}
+			}
+
+			if (!has) {
+				return;
+			}
+
+			for (auto form : second->getAll()) {
+				auto sp = form->As<RE::SpellItem>();
+				if (sp == nullptr) {
+					continue;
+				}
+
+				if (!plr->HasSpell(sp)) {
+					plr->AddSpell(sp);
+				}
+			}
+		}
+	}
+
 
 	void BetterTelekinesisPlugin::OnMainMenuOpen()
 	{
