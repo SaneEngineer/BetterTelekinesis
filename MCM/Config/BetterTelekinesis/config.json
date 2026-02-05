@@ -314,6 +314,21 @@
           "valueOptions": {
             "sourceType": "ModSettingBool"
           }
+        },
+        {
+          "id": "bTelekinesisDisarmsEnemies:Tweaks",
+          "text": "$BT_DisarmEnemy_Text",
+          "type": "toggle",
+          "help": "$BT_DisarmEnemy_Help",
+          "valueOptions": {
+            "sourceType": "ModSettingBool"
+          }
+        },
+        {
+          "id": "sTelekinesisDisarmPerk:Tweaks",
+          "text": "$BT_DisarmPerk_Text",
+          "type": "input",
+          "help": "$BT_DisarmPerk_Help"
         }
       ]
     },
@@ -521,15 +536,6 @@
             "step": 0.1,
             "formatString": "{1}",
             "sourceType": "ModSettingFloat"
-          }
-        },
-        {
-          "id": "bTelekinesisDisarmsEnemies:Enemy",
-          "text": "$BT_DisarmEnemy_Text",
-          "type": "toggle",
-          "help": "$BT_DisarmEnemy_Help",
-          "valueOptions": {
-            "sourceType": "ModSettingBool"
           }
         },
         {
