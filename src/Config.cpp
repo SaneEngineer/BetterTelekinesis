@@ -97,13 +97,14 @@ namespace BetterTelekinesis
 				ReadBoolSetting(ini, "Tweaks", "bAlwaysLaunchObjectsEvenWhenNotFinishedPulling", AlwaysLaunchObjectsEvenWhenNotFinishedPulling);
 				ReadBoolSetting(ini, "Tweaks", "bDontLaunchIfRunningOutOfMagicka", DontLaunchIfRunningOutOfMagicka);
 				ReadBoolSetting(ini, "Tweaks", "bPointWeaponsAndProjectilesForward", PointWeaponsAndProjectilesForward);
+				ReadBoolSetting(ini, "Tweaks", "bTelekinesisDisarmsEnemies", TelekinesisDisarmsEnemies);
+				ReadStringSetting(ini, "Tweaks", "sTelekinesisDisarmPerk", TelekinesisDisarmPerk);
 
 				ReadDoubleSetting(ini, "Enemy", "fActorPullSpeed", ActorPullSpeed);
 				ReadDoubleSetting(ini, "Enemy", "fActorThrowForce", ActorThrowForce);
 				ReadDoubleSetting(ini, "Enemy", "fActorHoldDistance", ActorHoldDistance);
 				ReadDoubleSetting(ini, "Enemy", "fThrowActorDamage", ThrowActorDamage);
 				ReadDoubleSetting(ini, "Enemy", "fHoldActorDamage", HoldActorDamage);
-				ReadBoolSetting(ini, "Enemy", "bTelekinesisDisarmsEnemies", TelekinesisDisarmsEnemies);
 				ReadBoolSetting(ini, "Enemy", "bActorDamageToggleEnabled", ActorDamageToggleEnabled);
 				ReadIntSetting(ini, "Enemy", "iToggleActorDamageHotkey", ToggleActorDamageHotkey);
 
@@ -203,6 +204,8 @@ namespace BetterTelekinesis
 		ini.SetLongValue("Tweaks", "bAlwaysLaunchObjectsEvenWhenNotFinishedPulling", AlwaysLaunchObjectsEvenWhenNotFinishedPulling, ";There's a mechanic where if you pull object to you with telekinesis but release the spell before the object is finished being pulled to you it gets dropped instead of launched. Here you can overwrite the behavior and force it to always to be launched even when not finished pulling yet.");
 		ini.SetLongValue("Tweaks", "bDontLaunchIfRunningOutOfMagicka", DontLaunchIfRunningOutOfMagicka, ";When the spell ends and it's time to launch objects check if you are out of magicka and if yes then don't launch?");
 		ini.SetLongValue("Tweaks", "bPointWeaponsAndProjectilesForward", PointWeaponsAndProjectilesForward, ";When holding objects in telekinesis then if they are weapon or projectile point them forward, for maximum coolness.");
+		ini.SetLongValue("Tweaks", "bTelekinesisDisarmsEnemies", TelekinesisDisarmsEnemies, ";Sometimes telekinesis disarms enemies. Some NPCs can not be disarmed. If you are already holding the maximum amount of objects with telekinesis it will not disarm. If there are multiple NPCs around you need to aim at the NPC you want to disarm or it may choose wrong target. Enemies need to have their weapon out to be able to disarm them.");
+		ini.SetValue("Tweaks", "sTelekinesisDisarmPerk", TelekinesisDisarmPerk.c_str(), ";Requires the player to have this perk for telekinesis to disarm enemies. If left empty, no perk will be required. Add the foID in the format, plugin:FormID");
 
 		ini.SetDoubleValue("Targeting", "fObjectTargetPickerRange", ObjectTargetPickerRange, ";The maximum distance from the line where you are aiming for objects to be picked to be telekinesis targets.");
 		ini.SetDoubleValue("Targeting", "fActorTargetPickerRange", ActorTargetPickerRange, ";The maximum distance from the line where you are aiming for actors to be picked to be telekinesis targets.");
@@ -221,7 +224,6 @@ namespace BetterTelekinesis
 		ini.SetDoubleValue("Enemy", "fActorHoldDistance", ActorHoldDistance, ";The distance multiplier at which to hold actors in front of you.");
 		ini.SetDoubleValue("Enemy", "fThrowActorDamage", ThrowActorDamage, ";This setting will cause throwing an actor to cause telekinesis damage to the same actor you just threw. The game has a bug where if you pick up a ragdoll and throw it very far it might not take almost any damage. This will make grabbing actors with telekinesis type effects much more effective way to combat them since you deal the same damage to actor by throwing them as if you would have by throwing an object at them with telekinesis. The value here says the ratio of the telekinesis damage that is done, if you set 0.5 for example then deal half of telekinesis damage to thrown actor. 0 will disable this setting.");
 		ini.SetDoubleValue("Enemy", "fHoldActorDamage", HoldActorDamage, ";This setting will cause holding an actor to cause telekinesis damage per second. The amount of damage done is multiplied by this value so 0.1 would deal 10% of telekinesis damage per second to held actor.");
-		ini.SetLongValue("Enemy", "bTelekinesisDisarmsEnemies", TelekinesisDisarmsEnemies, ";Sometimes telekinesis disarms enemies. Some NPCs can not be disarmed. If you are already holding the maximum amount of objects with telekinesis it will not disarm. If there are multiple NPCs around you need to aim at the NPC you want to disarm or it may choose wrong target. Enemies need to have their weapon out to be able to disarm them.");
 		ini.SetLongValue("Enemy", "bActorDamageToggleEnabled", ActorDamageToggleEnabled, ";Controls whether the below hotkey will be used.");
 		ini.SetLongValue("Enemy", "iToggleActorDamageHotkey", ToggleActorDamageHotkey, ";When this hotkey is pressed it will toggle the hold actor damage on or off. Hotkey values are DirectX Scan Codes, the default is caps lock.");
 

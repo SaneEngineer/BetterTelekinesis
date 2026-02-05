@@ -30,12 +30,13 @@ namespace BetterTelekinesis
 		static inline bool LaunchIsHotkeyInstead = false;
 		static inline bool TelekinesisGrabObjectSound = true;
 		static inline bool TelekinesisLaunchObjectSound = true;
-		static inline bool TelekinesisDisarmsEnemies = false;
 		static inline bool AutoLearnTelekinesisSpell = false;
 		static inline bool AutoLearnTelekinesisVariants = true;
 		static inline bool AlwaysLaunchObjectsEvenWhenNotFinishedPulling = false;
 		static inline bool DontLaunchIfRunningOutOfMagicka = true;
 		static inline bool PointWeaponsAndProjectilesForward = true;
+		static inline bool TelekinesisDisarmsEnemies = false;
+		static inline std::string TelekinesisDisarmPerk = "";
 
 		static inline bool OverwriteTargetPicker = true;
 		static inline double ObjectTargetPickerRange = 500.0;
