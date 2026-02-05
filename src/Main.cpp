@@ -1,4 +1,5 @@
 #include "BetterTelekinesis/Events.h"
+#include "BetterTelekinesis/Hooks.h"
 #include "BetterTelekinesis/Main.h"
 #include "BetterTelekinesis/Papyrus.h"
 
@@ -12,7 +13,7 @@ void InitializeHooking()
 	auto& trampoline = GetTrampoline();
 	trampoline.create(2048);
 	log::trace("Trampoline initialized.");
-	BetterTelekinesis::BetterTelekinesisPlugin::InstallHooks();
+	BetterTelekinesis::InstallHooks();
 }
 
 void InitializeMessaging()
